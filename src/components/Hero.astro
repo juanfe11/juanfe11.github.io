@@ -108,7 +108,7 @@ const hasPortrait =
         <div class="flex flex-col sm:flex-row gap-4 justify-center reveal" style="transition-delay: 0.3s;">
           <a href="#contact" class="btn-primary text-center">Get In Touch</a>
           {hasCv ? (
-            
+            <a
               href={cvHref}
               target="_blank"
               rel="noopener noreferrer"
@@ -118,10 +118,10 @@ const hasPortrait =
           )}
         </div>
 
-<div class="flex items-center justify-center gap-6 reveal" style="transition-delay: 0.4s;">
+        <div class="flex items-center justify-center gap-6 reveal" style="transition-delay: 0.4s;">
           {
             heroSocialLinks.map((link) => (
-              
+              <a
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -220,25 +220,64 @@ const hasPortrait =
   }
 
   @keyframes drift-1 {
-    0% { transform: translate(-20%, -10%); opacity: 0.5; }
-    25% { transform: translate(40%, 10%); opacity: 1; }
-    50% { transform: translate(60%, 50%); opacity: 0.6; }
-    75% { transform: translate(10%, 70%); opacity: 0.9; }
-    100% { transform: translate(-10%, 40%); opacity: 0.4; }
+    0% {
+      transform: translate(-20%, -10%);
+      opacity: 0.5;
+    }
+    25% {
+      transform: translate(40%, 10%);
+      opacity: 1;
+    }
+    50% {
+      transform: translate(60%, 50%);
+      opacity: 0.6;
+    }
+    75% {
+      transform: translate(10%, 70%);
+      opacity: 0.9;
+    }
+    100% {
+      transform: translate(-10%, 40%);
+      opacity: 0.4;
+    }
   }
 
   @keyframes drift-2 {
-    0% { transform: translate(80%, 60%); opacity: 0.6; }
-    33% { transform: translate(10%, 80%); opacity: 1; }
-    66% { transform: translate(-10%, 20%); opacity: 0.5; }
-    100% { transform: translate(70%, -10%); opacity: 0.8; }
+    0% {
+      transform: translate(80%, 60%);
+      opacity: 0.6;
+    }
+    33% {
+      transform: translate(10%, 80%);
+      opacity: 1;
+    }
+    66% {
+      transform: translate(-10%, 20%);
+      opacity: 0.5;
+    }
+    100% {
+      transform: translate(70%, -10%);
+      opacity: 0.8;
+    }
   }
 
   @keyframes drift-3 {
-    0% { transform: translate(50%, 20%); opacity: 0.3; }
-    40% { transform: translate(80%, 60%); opacity: 0.8; }
-    70% { transform: translate(20%, 80%); opacity: 0.4; }
-    100% { transform: translate(60%, 10%); opacity: 0.9; }
+    0% {
+      transform: translate(50%, 20%);
+      opacity: 0.3;
+    }
+    40% {
+      transform: translate(80%, 60%);
+      opacity: 0.8;
+    }
+    70% {
+      transform: translate(20%, 80%);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translate(60%, 10%);
+      opacity: 0.9;
+    }
   }
 
   .text-backdrop {
@@ -304,15 +343,17 @@ const hasPortrait =
     console.error('Hero canvas init failed');
   } else {
     const ctx = canvas.getContext('2d')!;
-    const BLOCK = 8;
-    const DOT = 2;
+    const BLOCK = 8; // fine grid cell size
+    const DOT = 2; // dot diameter in px
     const COLOR_A = '#6366f1';
     const COLOR_B = '#38bdf8';
     const GRID_BG = '#09090b';
     const GRID_STROKE = '#111827';
     const DECAY = 1 / 14;
 
-    let cols = 0, rows = 0;
+    let cols = 0,
+      rows = 0;
+
     let timers = new Float32Array(0);
 
     function resize() {
@@ -375,7 +416,8 @@ const hasPortrait =
       for (let dy = -radius; dy <= radius; dy++) {
         for (let dx = -radius; dx <= radius; dx++) {
           if (dx * dx + dy * dy > radius * radius) continue;
-          const nx = cx + dx, ny = cy + dy;
+          const nx = cx + dx,
+            ny = cy + dy;
           if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
             const idx = ny * cols + nx;
             if (timers[idx] === 0) timers[idx] = 1.0;
@@ -393,6 +435,8 @@ const hasPortrait =
     let rafId = 0;
     let heroVisible = true;
 
+    // Self-terminating loop: the rAF cycle stops as soon as all dot timers reach 0,
+    // so the canvas draws nothing and burns no CPU when the user's cursor is idle.
     function startAnimation() {
       if (rafId !== 0) return;
       function loop() {
