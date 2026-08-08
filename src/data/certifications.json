@@ -1,47 +1,38 @@
 [
   {
-    "name": "Google UX Design Certificate",
+    "name": "Diplomado en Expresión Oral y Manejo de Públicos",
+    "issuer": "Pontificia Universidad Javeriana — Educación Continua, Facultad de Comunicación y Lenguaje",
+    "date": "2022",
+    "status": "Earned",
+    "type": "certification",
+    "description": "Diplomado enfocado en el desarrollo de habilidades de comunicación oral, manejo de audiencias y presentación efectiva ante públicos diversos.",
+    "credentialUrl": ""
+  },
+  {
+    "name": "Certificado en Marketing Digital de Google",
     "issuer": "Google / Coursera",
-    "date": "May 2026",
+    "date": "2023",
     "status": "Earned",
     "type": "certification",
-    "description": "Seven-course program covering UX research, wireframing, prototyping, and usability testing. Emphasis on human-centered design principles and building accessible, inclusive user experiences.",
+    "description": "Serie de cursos en línea sin crédito autorizados por Google: Fundamentos del marketing digital y comercio electrónico, Evaluar para el éxito (analítica y medición de marketing), Atraer clientes e interactuar con ellos mediante marketing digital, De me gusta a leads (interacción con clientes en línea), y Creatividad en la bandeja de entrada (marketing por correo electrónico).",
     "credentialUrl": ""
   },
   {
-    "name": "Freelance Business Foundations",
-    "issuer": "CreativeLive",
-    "date": "December 2025",
+    "name": "Programming for Everybody (Getting Started with Python)",
+    "issuer": "University of Michigan / Coursera",
+    "date": "2023",
     "status": "Earned",
     "type": "certification",
-    "description": "Business-side program covering client acquisition, proposal writing, contracts, pricing strategy, and scope management. A practical toolkit for running an independent creative practice.",
+    "description": "Curso introductorio a la programación con Python: sintaxis básica, variables, estructuras de control y fundamentos de lógica de programación.",
     "credentialUrl": ""
   },
   {
-    "name": "Motion Design with After Effects",
-    "issuer": "School of Motion",
-    "date": "August 2024",
-    "status": "Completed",
-    "type": "professional-development",
-    "description": "Motion principles, keyframe animation, easing curves, and compositing applied to title sequences, UI animations, and explainer video production.",
-    "credentialUrl": ""
-  },
-  {
-    "name": "3D Art for Real-Time Engines",
-    "issuer": "Unity Learn / Epic Games",
-    "date": "Target: Q3 2027",
-    "status": "In Progress",
-    "type": "in-progress",
-    "description": "Bridging offline rendering knowledge with real-time constraints — optimizing assets, baking maps, and building environments in Unreal Engine for interactive and immersive projects.",
-    "credentialUrl": ""
-  },
-  {
-    "name": "Creative Coding & Generative AI",
-    "issuer": "Domestika / Runway",
-    "date": "Target: 2028",
-    "status": "In Progress",
-    "type": "in-progress",
-    "description": "Exploring the intersection of code, generative models, and visual art — building interactive installations, AI-assisted design tools, and procedural media for web and physical spaces.",
+    "name": "Python Data Structures",
+    "issuer": "University of Michigan / Coursera",
+    "date": "2024",
+    "status": "Earned",
+    "type": "certification",
+    "description": "Curso enfocado en estructuras de datos en Python: listas, diccionarios, tuplas y su aplicación en la resolución de problemas.",
     "credentialUrl": ""
   }
 ]
