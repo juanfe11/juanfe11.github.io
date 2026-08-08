@@ -1,0 +1,68 @@
+---
+const categories = [
+  { name: 'Modelado', description: 'Próximamente: diagramas y modelos entidad-relación.' },
+  { name: 'Normalización', description: 'Próximamente: ejercicios de normalización de bases de datos.' },
+  { name: 'SQL', description: 'Próximamente: scripts y consultas SQL.' },
+  { name: 'Proyecto', description: 'Próximamente: avances del proyecto final.' },
+];
+---
+
+<section id="evidencias" class="evidence-section">
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-24">
+    <h2 class="section-title">Evidencias</h2>
+    <p class="section-subtitle">Aquí iré publicando las evidencias del curso a lo largo del semestre.</p>
+
+    <div class="evidence-grid">
+      {categories.map((cat) => (
+        <div class="evidence-card">
+          <h3>{cat.name}</h3>
+          <p>{cat.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .evidence-section {
+    background-color: var(--bg);
+  }
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  .section-subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 2.5rem;
+  }
+  .evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  .evidence-card {
+    background: var(--bg-card);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .evidence-card h3 {
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .evidence-card p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 640px) {
+    .evidence-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
