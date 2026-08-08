@@ -1,46 +1,28 @@
 {
   "sections": [
     {
+      "label": "Presentación",
+      "shortLabel": "Presentación",
+      "href": "#presentacion",
+      "desc": "Video, foto y quién soy"
+    },
+    {
+      "label": "Evidencias",
+      "shortLabel": "Evidencias",
+      "href": "#evidencias",
+      "desc": "Modelado, Normalización, SQL y Proyecto"
+    },
+    {
       "label": "About",
       "shortLabel": "About",
       "href": "#about",
       "desc": "Background, experience, and approach"
     },
     {
-      "label": "Expertise",
-      "shortLabel": "Expertise",
-      "href": "#expertise",
-      "desc": "What I focus on and how I work"
-    },
-    {
-      "label": "Skills",
-      "shortLabel": "Skills",
-      "href": "#skills",
-      "desc": "Tools and technologies I use"
-    },
-    {
-      "label": "Portfolio",
-      "shortLabel": "Portfolio",
-      "href": "#portfolio",
-      "desc": "Client and commercial work"
-    },
-    {
-      "label": "Projects",
-      "shortLabel": "Projects",
-      "href": "#projects",
-      "desc": "Personal projects and experiments"
-    },
-    {
       "label": "Certifications",
       "shortLabel": "Certs",
       "href": "#certifications",
       "desc": "Training, courses, and credentials"
-    },
-    {
-      "label": "Services",
-      "shortLabel": "Services",
-      "href": "#services",
-      "desc": "Sites and projects I run"
     },
     {
       "label": "Contact",
