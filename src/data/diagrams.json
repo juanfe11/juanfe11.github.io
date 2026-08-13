@@ -1,12 +1,12 @@
 [
   {
     "title": "University Champions",
-    "description": "Diagrama entidad-relación para un sistema de gestión universitaria.",
-    "image": "/images/diagrams/university-champions.png"
+    "description": "Diagrama entidad-relación para un sistema de gestión universitaria de un campeonato de futbol.",
+    "image": "/images/diagrams/D_futbol.drawio.png"
   },
   {
     "title": "Plataforma de Streaming",
     "description": "Diagrama entidad-relación para una plataforma de streaming de contenido variado.",
-    "image": "/images/diagrams/plataforma-streaming.png"
+    "image": "/images/diagrams/D_stream.drawio.png"
   }
 ]
