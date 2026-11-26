@@ -1,12 +1,19 @@
 ---
 import data from '../data/evidencias.json';
+import { cargarSql } from '../lib/sqlParser';
 
 const root = import.meta.env.BASE_URL.replace(/\/$/, '');
 const categorias = data.categorias;
 
-function contar(n: number) {
+const sql = cargarSql();
+const totalSql = sql.clase.total + sql.proyecto.total;
+
+// SQL cuenta consultas (vienen de los textos); el resto cuenta evidencias del JSON.
+function contar(c: { slug: string; items: unknown[] }) {
+  const n = c.slug === 'sql' ? totalSql : c.items.length;
   if (n === 0) return 'Próximamente';
-  return n === 1 ? '1 evidencia' : `${n} evidencias`;
+  const unidad = c.slug === 'sql' ? ['consulta', 'consultas'] : ['evidencia', 'evidencias'];
+  return `${n} ${n === 1 ? unidad[0] : unidad[1]}`;
 }
 ---
 
@@ -23,7 +30,7 @@ function contar(n: number) {
           <a href={`${root}/evidencias/${c.slug}`} class="evidence-card">
             <h3>{c.titulo}</h3>
             <p>{c.resumen}</p>
-            <span class="count">{contar(c.items.length)}</span>
+            <span class="count">{contar(c)}</span>
           </a>
         ))
       }

@@ -4,7 +4,10 @@ import data from '../../data/evidencias.json';
 import { withBase } from '../../lib/assetPath';
 
 export function getStaticPaths() {
-  return data.categorias.map((cat) => ({
+  // SQL tiene su propia página (sql.astro), con un diseño distinto.
+  return data.categorias
+    .filter((cat) => cat.slug !== 'sql')
+    .map((cat) => ({
     params: { categoria: cat.slug },
     props: { cat },
   }));

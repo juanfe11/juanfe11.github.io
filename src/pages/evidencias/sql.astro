@@ -1,0 +1,483 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { cargarSql, type Seccion } from '../../lib/sqlParser';
+
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+const { clase, proyecto } = cargarSql();
+
+const partes = [
+  { id: 'clase', numero: 1, corto: 'En clase', titulo: 'En clase: Oracle y el esquema HR', doc: clase },
+  { id: 'proyecto', numero: 2, corto: 'En el proyecto', titulo: 'En el proyecto: VesperaRoom en MySQL', doc: proyecto },
+];
+
+function plural(n: number, uno: string, varios: string) {
+  return `${n} ${n === 1 ? uno : varios}`;
+}
+
+// Los primeros conceptos distintos del tema, para ver de un vistazo qué se practicó.
+function conceptos(s: Seccion) {
+  const unicos = [...new Set(s.consultas.map((q) => q.concepto))];
+  const vistos = unicos.slice(0, 4).join(', ');
+  return unicos.length > 4 ? `${vistos} y ${unicos.length - 4} más` : vistos;
+}
+---
+
+<Layout
+  title="SQL | Evidencias"
+  description="Consultas SQL de Bases de Datos 1: ejercicios de clase en Oracle y consultas del proyecto VesperaRoom en MySQL."
+>
+  <main id="main-content" class="ev-page">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-24">
+      <a href={`${root}/#evidencias`} class="back-link">← Volver a Evidencias</a>
+
+      <h1 class="text-3xl sm:text-4xl font-bold mt-8 mb-3 gradient-text">SQL</h1>
+      <p class="lead">
+        Mi recorrido con SQL en dos partes. Primero los ejercicios de clase en Oracle, que van de un
+        SELECT sencillo a subconsultas y operadores de conjunto. Después, las consultas de mi
+        proyecto VesperaRoom en MySQL, donde aplico lo anterior y sumo transacciones, creación de
+        tablas, permisos, rendimiento y programación en la base de datos.
+      </p>
+
+      <nav class="partes" aria-label="Partes de la página">
+        {
+          partes.map((p) => (
+            <a href={`#${p.id}`} class="parte-link">
+              <strong>
+                {p.numero}. {p.corto}
+              </strong>
+              <span>
+                {plural(p.doc.total, 'consulta', 'consultas')} en{' '}
+                {plural(p.doc.secciones.length, 'tema', 'temas')}
+              </span>
+            </a>
+          ))
+        }
+      </nav>
+
+      {
+        partes.map((p) => (
+          <div class="parte" id={p.id}>
+            <h2>
+              {p.numero}. {p.titulo}
+            </h2>
+
+            {p.doc.secciones.length === 0 ? (
+              <p class="empty">Todavía no hay consultas en esta parte.</p>
+            ) : (
+              <>
+                {p.doc.intro && <p class="intro">{p.doc.intro}</p>}
+
+                <dl class="stats">
+                  <div>
+                    <dt>Consultas</dt>
+                    <dd>{p.doc.total}</dd>
+                  </div>
+                  <div>
+                    <dt>Temas</dt>
+                    <dd>{p.doc.secciones.length}</dd>
+                  </div>
+                  {p.doc.tablas.length > 0 && (
+                    <div>
+                      <dt>Tablas</dt>
+                      <dd>{p.doc.tablas.length}</dd>
+                    </div>
+                  )}
+                </dl>
+
+                {p.doc.objetivo && (
+                  <p class="objetivo">
+                    <strong>Objetivo de aprendizaje.</strong> {p.doc.objetivo}
+                  </p>
+                )}
+
+                {p.doc.notas.length > 0 && (
+                  <details class="notas">
+                    <summary>Cómo ejecutar estas consultas</summary>
+                    <ul>
+                      {p.doc.notas.map((n) => (
+                        <li>{n}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
+                <p class="recorrido">
+                  Empieza con «{p.doc.secciones[0].nombre}» y termina con «
+                  {p.doc.secciones[p.doc.secciones.length - 1].nombre}».
+                </p>
+
+                <ol class="ruta">
+                  {p.doc.secciones.map((s, i) => (
+                    <li class="paso">
+                      <details open={i === 0}>
+                        <summary>
+                          <span class="num">{i + 1}</span>
+                          <span class="paso-info">
+                            <span class="paso-nombre">{s.nombre}</span>
+                            <span class="paso-etiqueta">{s.etiqueta}</span>
+                            <span class="paso-conceptos">{conceptos(s)}</span>
+                          </span>
+                          <span class="paso-count">
+                            {plural(s.consultas.length, 'consulta', 'consultas')}
+                          </span>
+                        </summary>
+
+                        <div class="paso-cuerpo">
+                          {s.resumen && <p class="resumen">{s.resumen}</p>}
+                          {s.consultas.map((q) => (
+                            <div class="q">
+                              <div class="q-head">
+                                <p class="q-title">{q.titulo}</p>
+                                <span class="q-tag">{q.concepto}</span>
+                              </div>
+                              <div class="code-wrap">
+                                <button type="button" class="copy">
+                                  Copiar código
+                                </button>
+                                <pre><code>{q.codigo}</code></pre>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .ev-page {
+    background-color: var(--bg);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+  .lead {
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 44rem;
+    margin-bottom: 2rem;
+  }
+  .empty {
+    color: var(--text-muted);
+    padding: 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+  }
+
+  .partes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 3.5rem;
+  }
+  .parte-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    text-decoration: none;
+    transition: border-color 0.2s ease;
+  }
+  .parte-link:hover,
+  .parte-link:focus-visible {
+    border-color: var(--accent);
+  }
+  .parte-link strong {
+    color: var(--text);
+  }
+  .parte-link span {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  .parte {
+    margin-bottom: 4rem;
+    scroll-margin-top: 5rem;
+  }
+  .parte h2 {
+    color: var(--text);
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .intro {
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 44rem;
+  }
+  .stats {
+    display: flex;
+    gap: 2.5rem;
+    margin: 1.5rem 0;
+  }
+  .stats dt {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+  .stats dd {
+    color: var(--text);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .objetivo {
+    color: var(--text-muted);
+    line-height: 1.8;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent);
+    max-width: 44rem;
+  }
+  .objetivo strong {
+    color: var(--text);
+  }
+  .notas {
+    margin-top: 1.25rem;
+    max-width: 44rem;
+  }
+  .notas summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .notas ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin-top: 0.75rem;
+  }
+  .notas li {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+  }
+  .recorrido {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 2rem;
+  }
+
+  .ruta {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+  }
+  .paso {
+    position: relative;
+    padding-left: 3.25rem;
+    padding-bottom: 0.75rem;
+  }
+  .paso::before {
+    content: '';
+    position: absolute;
+    left: 1.1rem;
+    top: 2.6rem;
+    bottom: -0.1rem;
+    width: 2px;
+    background: var(--border);
+  }
+  .paso:last-child::before {
+    display: none;
+  }
+  .num {
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .paso summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .paso summary::-webkit-details-marker {
+    display: none;
+  }
+  .paso summary::after {
+    content: '+';
+    color: var(--text-dim);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .paso details[open] summary::after {
+    content: '−';
+  }
+  .paso summary:hover {
+    border-color: var(--accent);
+  }
+  .paso summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .paso-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .paso-nombre {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .paso-etiqueta {
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .paso-conceptos {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .paso-count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .paso-cuerpo {
+    padding: 0.5rem 0.25rem 0.5rem;
+  }
+  .resumen {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.9rem;
+    margin: 0.75rem 0 0.5rem;
+  }
+  .q {
+    padding: 1rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .q:first-of-type {
+    border-top: none;
+  }
+  .q-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+  .q-title {
+    color: var(--text);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .q-tag {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    padding: 0.1rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    white-space: nowrap;
+  }
+
+  .code-wrap {
+    position: relative;
+  }
+  .code-wrap pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.8rem 6.5rem 0.8rem 1rem;
+    overflow-x: auto;
+  }
+  .code-wrap code {
+    font-family: monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre;
+  }
+  .copy {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.5rem;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  @media (max-width: 640px) {
+    .partes {
+      grid-template-columns: 1fr;
+    }
+    .paso {
+      padding-left: 2.75rem;
+    }
+    .paso summary {
+      flex-wrap: wrap;
+      gap: 0.4rem 0.75rem;
+    }
+    .paso-count {
+      order: 3;
+    }
+    .code-wrap pre {
+      padding-right: 1rem;
+      padding-top: 2.4rem;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.copy').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const code = btn.parentElement?.querySelector('code')?.textContent ?? '';
+      try {
+        await navigator.clipboard.writeText(code);
+        btn.textContent = 'Copiado';
+      } catch {
+        btn.textContent = 'No se pudo copiar';
+      }
+      setTimeout(() => {
+        btn.textContent = 'Copiar código';
+      }, 1800);
+    });
+  });
+</script>
