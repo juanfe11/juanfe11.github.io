@@ -1,0 +1,991 @@
+SQL
+Consultas en Oracle sobre el esquema HR, organizadas por las presentaciones de SQL del curso (de la 2 a la 9), más un bloque final de consultas integradoras. Cada consulta indica el problema que resuelve y el concepto que practica.
+
+Notas para la página:
+- Todo está escrito para Oracle Database y se ejecuta en Oracle SQL Developer sobre el esquema HR.
+- Todas las tablas llevan el prefijo del esquema (hr.employees, hr.departments, etc.).
+- Cada consulta se puede ejecutar sola con Ctrl+Enter. Las que usan DESCRIBE o variables de sustitución (&) se ejecutan con F5 (Ejecutar script).
+- Tablas consultadas: employees, departments, jobs, locations, countries, regions, job_history y job_grades.
+- Actualizar los contadores de la parte superior (consultas, presentaciones y tablas) según el total real de consultas de este texto.
+- Objetivo de aprendizaje: Consultar una base de datos en Oracle con todo lo visto en las presentaciones: filtros, funciones de una fila, conversiones, funciones de grupo, JOIN, subconsultas y operadores de conjunto.
+
+Presentación 2: Recuperar datos con SELECT
+Consultas sobre una sola tabla: columnas, alias, aritmética, NULL, concatenación, literales, DISTINCT y estructura de tablas.
+
+Mostrar todos los departamentos — SELECT *
+SELECT *
+FROM hr.departments;
+
+Ubicación de cada departamento — Columnas específicas
+SELECT department_id, location_id
+FROM hr.departments;
+
+Apellido y salario con encabezados en español — Alias de columna
+SELECT last_name AS "Apellido", salary AS "Salario"
+FROM hr.employees;
+
+Salario anual de cada empleado — Expresiones aritméticas y alias
+SELECT last_name, salary, salary * 12 AS "Salario anual"
+FROM hr.employees;
+
+Salario con un aumento fijo de 300 — Operador de suma
+SELECT last_name, salary, salary + 300 AS "Salario con aumento"
+FROM hr.employees;
+
+Efecto de los paréntesis en un cálculo — Precedencia de operadores
+SELECT last_name, salary,
+       12 * salary + 100   AS "Sin parentesis",
+       12 * (salary + 100) AS "Con parentesis"
+FROM hr.employees;
+
+Comisión anual de cada empleado, nula para quien no tiene — Aritmética con NULL
+SELECT last_name, 12 * salary * commission_pct AS "Comision anual"
+FROM hr.employees;
+
+Nombre completo de cada empleado con su cargo — Concatenación
+SELECT first_name || ' ' || last_name AS "Empleado", job_id
+FROM hr.employees;
+
+Frase descriptiva con el cargo de cada empleado — Literales de texto
+SELECT last_name || ' es un ' || job_id AS "Detalle del empleado"
+FROM hr.employees;
+
+Departamento y su jefe en una sola frase con apóstrofe — Operador de comillas alternativas q
+SELECT department_name || q'[ Department's Manager Id: ]' || manager_id AS "Departamento y jefe"
+FROM hr.departments;
+
+Cargos que existen hoy en la empresa, sin repetir — DISTINCT
+SELECT DISTINCT job_id
+FROM hr.employees;
+
+Departamentos que tienen empleados, sin repetir — DISTINCT con valores NULL
+SELECT DISTINCT department_id
+FROM hr.employees;
+
+Combinaciones distintas de departamento y cargo — DISTINCT con varias columnas
+SELECT DISTINCT department_id, job_id
+FROM hr.employees;
+
+Fecha y hora actual del servidor — Tabla DUAL y SYSDATE
+SELECT SYSDATE
+FROM dual;
+
+Estructura de la tabla de empleados — DESCRIBE
+DESCRIBE hr.employees
+
+Presentación 3: Restringir y ordenar los datos
+Filtros con WHERE y sus operadores, ordenamiento, límite de filas y variables de sustitución.
+
+Empleados del departamento de IT — WHERE con número
+SELECT employee_id, last_name, job_id, salary
+FROM hr.employees
+WHERE department_id = 60;
+
+Empleados que ganan más de 10000 — Operador mayor que
+SELECT last_name, salary
+FROM hr.employees
+WHERE salary > 10000;
+
+Buscar a los empleados de apellido King — WHERE con texto (distingue mayúsculas)
+SELECT first_name, last_name, job_id
+FROM hr.employees
+WHERE last_name = 'King';
+
+Empleados contratados desde 2007 — WHERE con fechas
+SELECT last_name, hire_date
+FROM hr.employees
+WHERE hire_date >= DATE '2007-01-01';
+
+Empleados que no son del departamento 50 — Operador distinto de (<>)
+SELECT last_name, department_id
+FROM hr.employees
+WHERE department_id <> 50;
+
+Empleados del departamento 50 que ganan más de 5000 — AND
+SELECT last_name, salary
+FROM hr.employees
+WHERE department_id = 50
+AND salary > 5000;
+
+Programadores y representantes de ventas — OR
+SELECT last_name, job_id
+FROM hr.employees
+WHERE job_id = 'IT_PROG'
+OR job_id = 'SA_REP';
+
+Empleados cuyo cargo no es representante de ventas — NOT
+SELECT last_name, job_id
+FROM hr.employees
+WHERE NOT job_id = 'SA_REP';
+
+Presidentes o representantes de ventas que ganan más de 15000, sin paréntesis — Precedencia de AND sobre OR
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE job_id = 'SA_REP'
+OR job_id = 'AD_PRES'
+AND salary > 15000;
+
+Los mismos cargos, pero aplicando el salario a ambos con paréntesis — Paréntesis para controlar la lógica
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE (job_id = 'SA_REP' OR job_id = 'AD_PRES')
+AND salary > 15000;
+
+Empleados que ganan entre 5000 y 10000 — BETWEEN
+SELECT last_name, salary
+FROM hr.employees
+WHERE salary BETWEEN 5000 AND 10000
+ORDER BY salary DESC;
+
+Empleados de los departamentos 10, 20 y 30 — IN
+SELECT last_name, department_id
+FROM hr.employees
+WHERE department_id IN (10, 20, 30);
+
+Empleados que no son vendedores ni auxiliares de bodega — NOT IN
+SELECT last_name, job_id
+FROM hr.employees
+WHERE job_id NOT IN ('SA_REP', 'ST_CLERK');
+
+Empleados cuyo apellido empieza por S — LIKE con %
+SELECT first_name, last_name
+FROM hr.employees
+WHERE last_name LIKE 'S%';
+
+Empleados cuyo apellido tiene la letra a en la segunda posición — LIKE con _
+SELECT first_name, last_name
+FROM hr.employees
+WHERE last_name LIKE '_a%';
+
+Empleados cuyo apellido termina en son — LIKE al final del texto
+SELECT last_name
+FROM hr.employees
+WHERE last_name LIKE '%son';
+
+Cargos de ventas que empiezan por SA_ — LIKE con ESCAPE
+SELECT DISTINCT job_id
+FROM hr.employees
+WHERE job_id LIKE 'SA\_%' ESCAPE '\';
+
+Empleados que no tienen comisión — IS NULL
+SELECT last_name, commission_pct
+FROM hr.employees
+WHERE commission_pct IS NULL;
+
+Empleados que sí tienen comisión — IS NOT NULL
+SELECT last_name, salary, commission_pct
+FROM hr.employees
+WHERE commission_pct IS NOT NULL;
+
+Empleados sin departamento asignado — IS NULL en una llave foránea
+SELECT last_name, job_id, department_id
+FROM hr.employees
+WHERE department_id IS NULL;
+
+Empleados del más antiguo al más reciente — ORDER BY ascendente
+SELECT last_name, hire_date
+FROM hr.employees
+ORDER BY hire_date;
+
+Empleados del mayor al menor salario — ORDER BY DESC
+SELECT last_name, salary
+FROM hr.employees
+ORDER BY salary DESC;
+
+Salario anual ordenado usando su alias — ORDER BY con alias
+SELECT last_name, salary * 12 AS "Anual"
+FROM hr.employees
+ORDER BY "Anual" DESC;
+
+Empleados por departamento y, dentro de cada uno, por salario — ORDER BY con varias columnas
+SELECT department_id, last_name, salary
+FROM hr.employees
+ORDER BY department_id, salary DESC;
+
+Apellido y salario ordenados por la segunda columna — ORDER BY por posición
+SELECT last_name, salary
+FROM hr.employees
+ORDER BY 2 DESC;
+
+Comisiones de mayor a menor, dejando los nulos al final — ORDER BY con NULLS LAST
+SELECT last_name, commission_pct
+FROM hr.employees
+ORDER BY commission_pct DESC NULLS LAST;
+
+Los cinco salarios más altos de la empresa — FETCH FIRST ROWS ONLY
+SELECT last_name, job_id, salary
+FROM hr.employees
+ORDER BY salary DESC
+FETCH FIRST 5 ROWS ONLY;
+
+Los cinco salarios más altos incluyendo empates — FETCH FIRST WITH TIES
+SELECT last_name, salary
+FROM hr.employees
+ORDER BY salary DESC
+FETCH FIRST 5 ROWS WITH TIES;
+
+El 10 por ciento de empleados mejor pagados — FETCH FIRST PERCENT
+SELECT last_name, salary
+FROM hr.employees
+ORDER BY salary DESC
+FETCH FIRST 10 PERCENT ROWS ONLY;
+
+Segunda página de resultados de cinco en cinco — OFFSET y FETCH NEXT
+SELECT last_name, salary
+FROM hr.employees
+ORDER BY salary DESC
+OFFSET 5 ROWS FETCH NEXT 5 ROWS ONLY;
+
+Empleados de un departamento que se pide al ejecutar — Variable de sustitución &
+SELECT employee_id, last_name, salary
+FROM hr.employees
+WHERE department_id = &numero_departamento;
+
+Empleados de un cargo que se escribe en minúscula o mayúscula — Variable de sustitución con texto
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE UPPER(job_id) = UPPER('&cargo');
+
+Columna y orden elegidos al ejecutar, pidiendo el dato una sola vez — Variable de sustitución doble &&
+SELECT employee_id, last_name, &&columna
+FROM hr.employees
+ORDER BY &columna;
+
+Presentación 4: Funciones de una sola fila
+Funciones de caracteres, números y fechas que devuelven un resultado por cada fila.
+
+Apellido en mayúsculas, nombre con inicial mayúscula y correo en minúsculas — UPPER, INITCAP, LOWER
+SELECT UPPER(last_name) AS apellido, INITCAP(first_name) AS nombre,
+       LOWER(email) AS correo
+FROM hr.employees;
+
+Buscar un apellido sin importar cómo esté escrito — LOWER en el WHERE
+SELECT first_name, last_name
+FROM hr.employees
+WHERE LOWER(last_name) = 'king';
+
+Nombre completo con la función de concatenación — CONCAT anidado
+SELECT CONCAT(first_name, CONCAT(' ', last_name)) AS nombre_completo
+FROM hr.employees;
+
+Iniciales y cantidad de letras del apellido de cada empleado — CONCAT, SUBSTR, LENGTH
+SELECT first_name, last_name,
+       CONCAT(SUBSTR(first_name, 1, 1), SUBSTR(last_name, 1, 1)) AS iniciales,
+       LENGTH(last_name) AS letras_apellido
+FROM hr.employees;
+
+Últimos cuatro caracteres del cargo — SUBSTR con posición negativa
+SELECT job_id, SUBSTR(job_id, -4) AS ultimos_cuatro
+FROM hr.employees;
+
+Empleados con apellidos de más de ocho letras — LENGTH en el WHERE
+SELECT last_name, LENGTH(last_name) AS letras
+FROM hr.employees
+WHERE LENGTH(last_name) > 8;
+
+Posición de la letra a en cada apellido — INSTR
+SELECT last_name, INSTR(last_name, 'a') AS posicion_a
+FROM hr.employees;
+
+Prefijo telefónico de cada empleado, el texto antes del primer punto — SUBSTR con INSTR
+SELECT phone_number,
+       SUBSTR(phone_number, 1, INSTR(phone_number, '.') - 1) AS prefijo
+FROM hr.employees;
+
+Teléfonos con guiones en lugar de puntos — REPLACE
+SELECT phone_number, REPLACE(phone_number, '.', '-') AS telefono_formateado
+FROM hr.employees;
+
+Salario rellenado con asteriscos a la izquierda — LPAD
+SELECT last_name, LPAD(salary, 10, '*') AS salario_relleno
+FROM hr.employees;
+
+Apellido con puntos de relleno para alinear columnas — RPAD
+SELECT RPAD(last_name, 15, '.') || salary AS listado
+FROM hr.employees;
+
+Código de empleado con tres letras del apellido y el número con ceros — Funciones anidadas
+SELECT UPPER(SUBSTR(last_name, 1, 3)) || '-' || LPAD(employee_id, 5, '0') AS codigo
+FROM hr.employees;
+
+Quitar espacios y ceros sobrantes de un texto — TRIM
+SELECT TRIM('   Oracle   ') AS sin_espacios,
+       TRIM(LEADING '0' FROM '000123') AS sin_ceros
+FROM dual;
+
+Un mismo número redondeado de tres formas — ROUND
+SELECT ROUND(45.923, 2) AS dos_decimales,
+       ROUND(45.923, 0) AS entero,
+       ROUND(45.923, -1) AS decena
+FROM dual;
+
+Un mismo número truncado de tres formas — TRUNC
+SELECT TRUNC(45.923, 2) AS dos_decimales,
+       TRUNC(45.923, 0) AS entero,
+       TRUNC(45.923, -1) AS decena
+FROM dual;
+
+Pago diario aproximado de los empleados de Shipping — ROUND y TRUNC
+SELECT last_name, salary, ROUND(salary / 30, 2) AS pago_diario,
+       TRUNC(salary / 30) AS pago_diario_entero
+FROM hr.employees
+WHERE department_id = 50;
+
+Empleados con número de identificación par — MOD
+SELECT employee_id, last_name
+FROM hr.employees
+WHERE MOD(employee_id, 2) = 0;
+
+Resto de dividir cada salario entre 1000 — MOD
+SELECT last_name, salary, MOD(salary, 1000) AS residuo
+FROM hr.employees;
+
+Días que lleva cada empleado en la empresa — Resta de fechas
+SELECT last_name, hire_date, TRUNC(SYSDATE - hire_date) AS dias_en_la_empresa
+FROM hr.employees;
+
+Meses trabajados y fin del periodo de prueba de los programadores — MONTHS_BETWEEN y ADD_MONTHS
+SELECT last_name, hire_date,
+       TRUNC(MONTHS_BETWEEN(SYSDATE, hire_date)) AS meses_trabajados,
+       ADD_MONTHS(hire_date, 6) AS fin_periodo_prueba
+FROM hr.employees
+WHERE job_id = 'IT_PROG';
+
+Años completos de antigüedad de cada empleado — MONTHS_BETWEEN dividido entre 12
+SELECT last_name, TRUNC(MONTHS_BETWEEN(SYSDATE, hire_date) / 12) AS anios_antiguedad
+FROM hr.employees
+ORDER BY anios_antiguedad DESC;
+
+Último día del mes de contratación de cada empleado — LAST_DAY
+SELECT last_name, hire_date, LAST_DAY(hire_date) AS fin_de_mes
+FROM hr.employees;
+
+Fecha de contratación redondeada y truncada — ROUND y TRUNC con fechas
+SELECT last_name, hire_date,
+       ROUND(hire_date, 'MONTH') AS mes_redondeado,
+       TRUNC(hire_date, 'YEAR')  AS inicio_de_anio
+FROM hr.employees;
+
+Año y mes de contratación como números — EXTRACT
+SELECT last_name,
+       EXTRACT(YEAR FROM hire_date)  AS anio,
+       EXTRACT(MONTH FROM hire_date) AS mes
+FROM hr.employees;
+
+Empleados contratados en enero de cualquier año — EXTRACT en el WHERE
+SELECT last_name, hire_date
+FROM hr.employees
+WHERE EXTRACT(MONTH FROM hire_date) = 1;
+
+Presentación 5: Funciones de conversión y expresiones condicionales
+Conversión entre fechas, números y texto, manejo de valores nulos y condiciones dentro del SELECT.
+
+Fecha de ingreso y salario con formato — TO_CHAR
+SELECT last_name, TO_CHAR(hire_date, 'DD/MM/YYYY') AS fecha_ingreso,
+       TO_CHAR(salary, '$99,999.00') AS salario
+FROM hr.employees;
+
+Fecha de ingreso escrita con el mes completo — TO_CHAR con fm y texto literal
+SELECT last_name, TO_CHAR(hire_date, 'fmDD "de" Month "de" YYYY') AS fecha_larga
+FROM hr.employees;
+
+Año de ingreso como texto — TO_CHAR con YYYY
+SELECT last_name, TO_CHAR(hire_date, 'YYYY') AS anio_ingreso
+FROM hr.employees
+ORDER BY anio_ingreso;
+
+Salario con ceros a la izquierda — TO_CHAR con formato numérico
+SELECT last_name, TO_CHAR(salary, '099999') AS salario_con_ceros
+FROM hr.employees;
+
+Empleados que ingresaron después del 1 de enero de 2006 — TO_DATE
+SELECT last_name, hire_date
+FROM hr.employees
+WHERE hire_date > TO_DATE('01/01/2006', 'DD/MM/YYYY');
+
+Empleados contratados en el primer semestre de 2005 — TO_DATE con BETWEEN
+SELECT last_name, hire_date
+FROM hr.employees
+WHERE hire_date BETWEEN TO_DATE('01-01-2005', 'DD-MM-YYYY')
+                    AND TO_DATE('30-06-2005', 'DD-MM-YYYY');
+
+Convertir texto a número y operar con él — TO_NUMBER
+SELECT TO_NUMBER('00123') AS numero,
+       TO_NUMBER('1500', '9999') + 500 AS suma
+FROM dual;
+
+Conversión implícita de texto a número — Conversión implícita
+SELECT '100' + 50 AS resultado
+FROM dual;
+
+Comisión de cada empleado, mostrando 0 cuando no tiene — NVL y NVL2
+SELECT last_name, NVL(commission_pct, 0) AS comision,
+       NVL2(commission_pct, 'Con comision', 'Sin comision') AS tipo_pago
+FROM hr.employees;
+
+Ingreso total anual incluyendo la comisión — NVL dentro de un cálculo
+SELECT last_name, salary, commission_pct,
+       salary * 12 + salary * 12 * NVL(commission_pct, 0) AS ingreso_anual_total
+FROM hr.employees;
+
+Empleados cuyo nombre y apellido tienen distinta longitud — NULLIF
+SELECT first_name, LENGTH(first_name) AS largo_nombre,
+       last_name, LENGTH(last_name) AS largo_apellido,
+       NULLIF(LENGTH(first_name), LENGTH(last_name)) AS resultado
+FROM hr.employees;
+
+Primer dato disponible entre la comisión y el jefe — COALESCE
+SELECT last_name,
+       COALESCE(TO_CHAR(commission_pct), TO_CHAR(manager_id), 'Sin comision ni jefe') AS dato
+FROM hr.employees;
+
+Nivel salarial de cada empleado según su salario — CASE con condiciones
+SELECT last_name, salary,
+       CASE WHEN salary < 5000 THEN 'Bajo'
+            WHEN salary < 10000 THEN 'Medio'
+            ELSE 'Alto'
+       END AS nivel_salarial
+FROM hr.employees;
+
+Salario revisado con un aumento según el cargo — CASE simple
+SELECT last_name, job_id, salary,
+       CASE job_id WHEN 'IT_PROG'  THEN salary * 1.10
+                   WHEN 'ST_CLERK' THEN salary * 1.15
+                   WHEN 'SA_REP'   THEN salary * 1.20
+                   ELSE salary
+       END AS salario_revisado
+FROM hr.employees;
+
+El mismo aumento por cargo escrito con DECODE — DECODE
+SELECT last_name, job_id, salary,
+       DECODE(job_id, 'IT_PROG', salary * 1.10,
+                      'ST_CLERK', salary * 1.15,
+                      'SA_REP', salary * 1.20,
+                      salary) AS salario_revisado
+FROM hr.employees;
+
+Tipo de pago según tenga o no comisión — DECODE comparando con NULL
+SELECT last_name,
+       DECODE(commission_pct, NULL, 'Sin comision', 'Con comision') AS tipo_pago
+FROM hr.employees;
+
+Generación de cada empleado según su año de ingreso — CASE con EXTRACT
+SELECT last_name, hire_date,
+       CASE WHEN EXTRACT(YEAR FROM hire_date) < 2004 THEN 'Fundador'
+            WHEN EXTRACT(YEAR FROM hire_date) < 2007 THEN 'Intermedio'
+            ELSE 'Reciente'
+       END AS generacion
+FROM hr.employees;
+
+Presentación 6: Datos agregados con funciones de grupo
+Funciones que resumen varias filas en un solo resultado, agrupamiento y filtro de grupos.
+
+Salario promedio, máximo, mínimo y total de la empresa — AVG, MAX, MIN, SUM
+SELECT ROUND(AVG(salary), 2) AS promedio, MAX(salary) AS maximo,
+       MIN(salary) AS minimo, SUM(salary) AS total
+FROM hr.employees;
+
+Cuántos empleados hay, cuántos tienen comisión y en cuántos departamentos trabajan — COUNT
+SELECT COUNT(*) AS empleados, COUNT(commission_pct) AS con_comision,
+       COUNT(DISTINCT department_id) AS departamentos
+FROM hr.employees;
+
+Empleado más antiguo, más reciente y apellidos extremos — MIN y MAX con fechas y texto
+SELECT MIN(hire_date) AS mas_antiguo, MAX(hire_date) AS mas_reciente,
+       MIN(last_name) AS primer_apellido, MAX(last_name) AS ultimo_apellido
+FROM hr.employees;
+
+Promedio de comisión ignorando nulos frente a contándolos como cero — AVG con NVL
+SELECT AVG(commission_pct) AS promedio_solo_con_comision,
+       AVG(NVL(commission_pct, 0)) AS promedio_todos
+FROM hr.employees;
+
+Cantidad de empleados y salario promedio por departamento — GROUP BY
+SELECT department_id, COUNT(*) AS empleados, ROUND(AVG(salary), 2) AS salario_promedio
+FROM hr.employees
+GROUP BY department_id
+ORDER BY department_id;
+
+Nómina total por cargo — GROUP BY con SUM
+SELECT job_id, SUM(salary) AS nomina_total
+FROM hr.employees
+GROUP BY job_id
+ORDER BY nomina_total DESC;
+
+Empleados por departamento y cargo — GROUP BY con dos columnas
+SELECT department_id, job_id, COUNT(*) AS empleados
+FROM hr.employees
+GROUP BY department_id, job_id
+ORDER BY department_id, job_id;
+
+Promedio por departamento solo de quienes ganan más de 3000 — WHERE antes de GROUP BY
+SELECT department_id, ROUND(AVG(salary), 2) AS promedio
+FROM hr.employees
+WHERE salary > 3000
+GROUP BY department_id;
+
+Departamentos cuyo salario máximo supera 10000 — HAVING
+SELECT department_id, MAX(salary) AS salario_maximo
+FROM hr.employees
+GROUP BY department_id
+HAVING MAX(salary) > 10000;
+
+Departamentos con más de cinco empleados — HAVING con COUNT
+SELECT department_id, COUNT(*) AS empleados
+FROM hr.employees
+GROUP BY department_id
+HAVING COUNT(*) > 5
+ORDER BY empleados DESC;
+
+Cargos con promedio superior a 8000, sin contar al presidente — WHERE y HAVING juntos
+SELECT job_id, ROUND(AVG(salary), 2) AS promedio
+FROM hr.employees
+WHERE job_id <> 'AD_PRES'
+GROUP BY job_id
+HAVING AVG(salary) > 8000
+ORDER BY promedio DESC;
+
+Cantidad de contrataciones por año — GROUP BY con EXTRACT
+SELECT EXTRACT(YEAR FROM hire_date) AS anio, COUNT(*) AS contrataciones
+FROM hr.employees
+GROUP BY EXTRACT(YEAR FROM hire_date)
+ORDER BY anio;
+
+Cuántos empleados dirige cada jefe — GROUP BY sobre la llave del jefe
+SELECT manager_id, COUNT(*) AS empleados_a_cargo
+FROM hr.employees
+WHERE manager_id IS NOT NULL
+GROUP BY manager_id
+ORDER BY empleados_a_cargo DESC;
+
+El mayor promedio salarial entre todos los departamentos — Funciones de grupo anidadas
+SELECT MAX(AVG(salary)) AS mayor_promedio
+FROM hr.employees
+GROUP BY department_id;
+
+Nómina por departamento con un total general al final — ROLLUP
+SELECT department_id, SUM(salary) AS nomina
+FROM hr.employees
+GROUP BY ROLLUP(department_id);
+
+Empleados de cada departamento en una sola celda — LISTAGG
+SELECT department_id,
+       LISTAGG(last_name, ', ') WITHIN GROUP (ORDER BY last_name) AS empleados
+FROM hr.employees
+WHERE department_id IN (10, 20, 110)
+GROUP BY department_id;
+
+Presentación 7: Mostrar datos de varias tablas con JOIN
+Consultas que combinan tablas por sus llaves, por un rango de valores o con la misma tabla.
+
+Departamentos con su ciudad, uniendo por la columna común — NATURAL JOIN
+SELECT department_name, city
+FROM hr.departments
+NATURAL JOIN hr.locations;
+
+Países con la región a la que pertenecen — NATURAL JOIN
+SELECT country_name, region_name
+FROM hr.countries
+NATURAL JOIN hr.regions;
+
+Empleados con el nombre de su departamento — JOIN USING
+SELECT last_name, department_name
+FROM hr.employees
+JOIN hr.departments USING (department_id);
+
+Empleado, departamento y ciudad donde trabaja — JOIN ON con tres tablas
+SELECT e.last_name, d.department_name, l.city
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id;
+
+Empleado, departamento, ciudad y país — JOIN de cuatro tablas
+SELECT e.last_name, d.department_name, l.city, c.country_name
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id
+JOIN hr.countries c ON l.country_id = c.country_id;
+
+Empleados que trabajan en Seattle — JOIN con WHERE
+SELECT e.last_name, d.department_name
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id
+WHERE l.city = 'Seattle';
+
+Empleados de ventas cuyo jefe es el empleado 149 — JOIN con condición adicional
+SELECT e.last_name, d.department_name
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+                     AND e.manager_id = 149;
+
+Cada empleado junto al nombre de su jefe directo — Self join
+SELECT e.last_name AS empleado, j.last_name AS jefe
+FROM hr.employees e
+JOIN hr.employees j ON e.manager_id = j.employee_id;
+
+Empleados que ganan más que su propio jefe — Self join con comparación
+SELECT e.last_name AS empleado, e.salary AS salario_empleado,
+       j.last_name AS jefe, j.salary AS salario_jefe
+FROM hr.employees e
+JOIN hr.employees j ON e.manager_id = j.employee_id
+WHERE e.salary > j.salary;
+
+Escala salarial de cada empleado según su salario — Nonequijoin
+SELECT e.last_name, e.salary, g.grade_level
+FROM hr.employees e
+JOIN hr.job_grades g ON e.salary BETWEEN g.lowest_sal AND g.highest_sal;
+
+Todos los departamentos con sus empleados, incluso los que no tienen — LEFT OUTER JOIN
+SELECT d.department_name, e.last_name
+FROM hr.departments d
+LEFT OUTER JOIN hr.employees e ON d.department_id = e.department_id
+ORDER BY d.department_name;
+
+Todos los empleados, incluso el que no tiene departamento — LEFT OUTER JOIN
+SELECT e.last_name, d.department_name
+FROM hr.employees e
+LEFT OUTER JOIN hr.departments d ON e.department_id = d.department_id
+ORDER BY e.last_name;
+
+Departamentos que no tienen ningún empleado — RIGHT OUTER JOIN con filtro de NULL
+SELECT d.department_id, d.department_name
+FROM hr.employees e
+RIGHT OUTER JOIN hr.departments d ON e.department_id = d.department_id
+WHERE e.employee_id IS NULL;
+
+Empleados sin departamento y departamentos sin empleados a la vez — FULL OUTER JOIN
+SELECT e.last_name, d.department_name
+FROM hr.employees e
+FULL OUTER JOIN hr.departments d ON e.department_id = d.department_id
+WHERE e.employee_id IS NULL OR d.department_id IS NULL;
+
+Todas las combinaciones de región y cargo — CROSS JOIN
+SELECT r.region_name, j.job_title
+FROM hr.regions r
+CROSS JOIN hr.jobs j;
+
+Historial de cargos anteriores con el nombre del empleado y del cargo — JOIN de tres tablas
+SELECT e.last_name, j.job_title, h.start_date, h.end_date
+FROM hr.job_history h
+JOIN hr.employees e ON h.employee_id = e.employee_id
+JOIN hr.jobs j ON h.job_id = j.job_id
+ORDER BY h.start_date;
+
+Cantidad de empleados por país con más de 10 — JOIN con GROUP BY y HAVING
+SELECT c.country_name AS "Pais", COUNT(*) AS "cantidad"
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id
+JOIN hr.countries c ON l.country_id = c.country_id
+GROUP BY c.country_name
+HAVING COUNT(*) > 10;
+
+Nómina total por ciudad — JOIN con SUM
+SELECT l.city, SUM(e.salary) AS nomina
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id
+GROUP BY l.city
+ORDER BY nomina DESC;
+
+Empleados con su departamento usando la sintaxis antigua de Oracle — JOIN en el WHERE
+SELECT e.last_name, d.department_name
+FROM hr.employees e, hr.departments d
+WHERE e.department_id = d.department_id;
+
+Todos los departamentos con sus empleados usando la sintaxis antigua — Outer join con (+)
+SELECT d.department_name, e.last_name
+FROM hr.departments d, hr.employees e
+WHERE d.department_id = e.department_id(+);
+
+Presentación 8: Subconsultas
+Consultas que usan el resultado de otra consulta para filtrar los datos.
+
+Empleados que ganan más que Abel — Subconsulta de una fila
+SELECT last_name, salary
+FROM hr.employees
+WHERE salary > (SELECT salary
+                FROM hr.employees
+                WHERE last_name = 'Abel');
+
+Empleados que ganan el salario más bajo de la empresa — Función de grupo en subconsulta
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE salary = (SELECT MIN(salary)
+                FROM hr.employees);
+
+Empleado mejor pagado de la empresa — Función de grupo en subconsulta
+SELECT last_name, salary
+FROM hr.employees
+WHERE salary = (SELECT MAX(salary)
+                FROM hr.employees);
+
+Empleados con el mismo cargo del 141 y que ganan más que el 143 — Dos subconsultas de una fila
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE job_id = (SELECT job_id
+                FROM hr.employees
+                WHERE employee_id = 141)
+AND salary > (SELECT salary
+              FROM hr.employees
+              WHERE employee_id = 143);
+
+Empleados que trabajan en el mismo departamento que Zlotkey — Subconsulta con texto
+SELECT last_name, department_id
+FROM hr.employees
+WHERE department_id = (SELECT department_id
+                       FROM hr.employees
+                       WHERE last_name = 'Zlotkey');
+
+Empleados que ganan más que el promedio de la empresa — Subconsulta con AVG
+SELECT last_name, salary
+FROM hr.employees
+WHERE salary > (SELECT AVG(salary)
+                FROM hr.employees)
+ORDER BY salary;
+
+Departamentos cuyo salario mínimo es mayor que el mínimo del departamento 50 — HAVING con subconsulta
+SELECT department_id, MIN(salary) AS salario_minimo
+FROM hr.employees
+GROUP BY department_id
+HAVING MIN(salary) > (SELECT MIN(salary)
+                      FROM hr.employees
+                      WHERE department_id = 50);
+
+Empleados que trabajan en departamentos ubicados en Seattle — Subconsulta de varias filas con IN
+SELECT last_name, department_id
+FROM hr.employees
+WHERE department_id IN (SELECT department_id
+                        FROM hr.departments
+                        WHERE location_id = 1700);
+
+Empleados que trabajan en el Reino Unido — Subconsultas anidadas
+SELECT last_name, department_id
+FROM hr.employees
+WHERE department_id IN (SELECT department_id
+                        FROM hr.departments
+                        WHERE location_id IN (SELECT location_id
+                                              FROM hr.locations
+                                              WHERE country_id = 'UK'));
+
+Empleados que son jefes de otros — IN con subconsulta sobre la misma tabla
+SELECT employee_id, last_name
+FROM hr.employees
+WHERE employee_id IN (SELECT manager_id
+                      FROM hr.employees);
+
+Empleados que no son jefes de nadie — NOT IN filtrando los nulos
+SELECT employee_id, last_name
+FROM hr.employees
+WHERE employee_id NOT IN (SELECT manager_id
+                          FROM hr.employees
+                          WHERE manager_id IS NOT NULL);
+
+Empleados que ganan menos que algún programador, sin serlo — ANY
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE salary < ANY (SELECT salary
+                    FROM hr.employees
+                    WHERE job_id = 'IT_PROG')
+AND job_id <> 'IT_PROG';
+
+Empleados que ganan menos que todos los programadores, sin serlo — ALL
+SELECT last_name, job_id, salary
+FROM hr.employees
+WHERE salary < ALL (SELECT salary
+                    FROM hr.employees
+                    WHERE job_id = 'IT_PROG')
+AND job_id <> 'IT_PROG';
+
+Empleados que ganan más que el promedio de su propio departamento — Subconsulta correlacionada
+SELECT e.last_name, e.salary, e.department_id
+FROM hr.employees e
+WHERE e.salary > (SELECT AVG(salary)
+                  FROM hr.employees
+                  WHERE department_id = e.department_id);
+
+Empleados contratados antes que su propio jefe — Subconsulta correlacionada con fechas
+SELECT e.last_name, e.hire_date
+FROM hr.employees e
+WHERE e.hire_date < (SELECT hire_date
+                     FROM hr.employees
+                     WHERE employee_id = e.manager_id);
+
+Departamentos que tienen al menos un empleado — EXISTS
+SELECT d.department_id, d.department_name
+FROM hr.departments d
+WHERE EXISTS (SELECT 1
+              FROM hr.employees e
+              WHERE e.department_id = d.department_id);
+
+Departamentos que no tienen ningún empleado — NOT EXISTS
+SELECT d.department_id, d.department_name
+FROM hr.departments d
+WHERE NOT EXISTS (SELECT 1
+                  FROM hr.employees e
+                  WHERE e.department_id = d.department_id);
+
+Diferencia de cada salario frente al promedio de la empresa — Subconsulta en el SELECT
+SELECT last_name, salary,
+       ROUND(salary - (SELECT AVG(salary) FROM hr.employees), 2) AS diferencia_con_promedio
+FROM hr.employees;
+
+Empleados que ganan más que el promedio de su departamento, mostrando ese promedio — Subconsulta en el FROM
+SELECT e.last_name, e.salary, ROUND(d.promedio, 2) AS promedio_departamento
+FROM hr.employees e
+JOIN (SELECT department_id, AVG(salary) AS promedio
+      FROM hr.employees
+      GROUP BY department_id) d
+  ON e.department_id = d.department_id
+WHERE e.salary > d.promedio;
+
+Empleado mejor pagado de cada departamento — Subconsulta de varias columnas
+SELECT department_id, last_name, salary
+FROM hr.employees
+WHERE (department_id, salary) IN (SELECT department_id, MAX(salary)
+                                  FROM hr.employees
+                                  GROUP BY department_id)
+ORDER BY department_id;
+
+Segundo salario más alto de la empresa — Subconsultas anidadas con MAX
+SELECT last_name, salary
+FROM hr.employees
+WHERE salary = (SELECT MAX(salary)
+                FROM hr.employees
+                WHERE salary < (SELECT MAX(salary)
+                                FROM hr.employees));
+
+Departamentos con nómina superior al promedio de las nóminas — Expresión WITH
+WITH nomina AS (
+    SELECT department_id, SUM(salary) AS total
+    FROM hr.employees
+    GROUP BY department_id
+)
+SELECT department_id, total
+FROM nomina
+WHERE total > (SELECT AVG(total) FROM nomina)
+ORDER BY total DESC;
+
+Presentación 9: Operadores de conjunto
+Combinación del cargo actual de cada empleado (EMPLOYEES) con sus cargos anteriores (JOB_HISTORY).
+
+Todos los cargos que ha tenido cada empleado, sin repetir — UNION
+SELECT employee_id, job_id
+FROM hr.employees
+UNION
+SELECT employee_id, job_id
+FROM hr.job_history;
+
+Los mismos cargos con su departamento, sin quitar los repetidos — UNION ALL
+SELECT employee_id, job_id, department_id
+FROM hr.employees
+UNION ALL
+SELECT employee_id, job_id, department_id
+FROM hr.job_history
+ORDER BY employee_id;
+
+Empleados que hoy tienen un cargo que ya habían tenido antes — INTERSECT
+SELECT employee_id, job_id
+FROM hr.employees
+INTERSECT
+SELECT employee_id, job_id
+FROM hr.job_history;
+
+Empleados que alguna vez cambiaron de cargo — INTERSECT por identificador
+SELECT employee_id
+FROM hr.employees
+INTERSECT
+SELECT employee_id
+FROM hr.job_history;
+
+Empleados que nunca han cambiado de cargo — MINUS
+SELECT employee_id
+FROM hr.employees
+MINUS
+SELECT employee_id
+FROM hr.job_history;
+
+Departamentos que no tienen empleados — MINUS
+SELECT department_id
+FROM hr.departments
+MINUS
+SELECT department_id
+FROM hr.employees;
+
+Sedes en las que no hay ningún departamento — MINUS con llaves de ubicación
+SELECT location_id
+FROM hr.locations
+MINUS
+SELECT location_id
+FROM hr.departments;
+
+Departamentos y ciudades en un solo listado por ubicación — UNION con columnas rellenas con NULL
+SELECT location_id, department_name AS "Departamento", TO_CHAR(NULL) AS "Ciudad"
+FROM hr.departments
+UNION
+SELECT location_id, TO_CHAR(NULL), city
+FROM hr.locations
+ORDER BY 1;
+
+Total de registros de cargos actuales e históricos — UNION ALL dentro de una subconsulta
+SELECT COUNT(*) AS total_registros
+FROM (SELECT employee_id, job_id FROM hr.employees
+      UNION ALL
+      SELECT employee_id, job_id FROM hr.job_history);
+
+Consultas integradoras
+Combinan varios temas del curso: filtros, funciones, JOIN, agrupamiento, subconsultas y límite de filas.
+
+Los diez departamentos con mayor nómina, incluyendo empates — JOIN, SUM, GROUP BY y FETCH WITH TIES
+SELECT d.department_name AS "Departamento",
+       SUM(e.salary)     AS "Total"
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+GROUP BY d.department_name
+ORDER BY SUM(e.salary) DESC
+FETCH FIRST 10 ROWS WITH TIES;
+
+Salario promedio por país, del más alto al más bajo — Cuatro tablas con AVG
+SELECT c.country_name AS "Pais", ROUND(AVG(e.salary), 2) AS "Salario promedio"
+FROM hr.employees e
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id
+JOIN hr.countries c ON l.country_id = c.country_id
+GROUP BY c.country_name
+ORDER BY "Salario promedio" DESC;
+
+Ficha completa de cada empleado con cargo, departamento y ciudad — Varias tablas con concatenación
+SELECT e.first_name || ' ' || e.last_name AS "Empleado",
+       j.job_title AS "Cargo",
+       d.department_name AS "Departamento",
+       l.city AS "Ciudad"
+FROM hr.employees e
+JOIN hr.jobs j ON e.job_id = j.job_id
+JOIN hr.departments d ON e.department_id = d.department_id
+JOIN hr.locations l ON d.location_id = l.location_id
+ORDER BY "Empleado";
+
+Jefes con la cantidad de empleados que dirigen y su salario — Self join con GROUP BY
+SELECT m.last_name AS "Jefe", m.salary AS "Salario del jefe", COUNT(*) AS "Empleados a cargo"
+FROM hr.employees e
+JOIN hr.employees m ON e.manager_id = m.employee_id
+GROUP BY m.last_name, m.salary
+ORDER BY "Empleados a cargo" DESC;
+
+Empleados con su escala salarial y la antigüedad en años — JOIN no equivalente con fechas
+SELECT e.last_name, e.salary, g.grade_level AS escala,
+       TRUNC(MONTHS_BETWEEN(SYSDATE, e.hire_date) / 12) AS anios_antiguedad
+FROM hr.employees e
+JOIN hr.job_grades g ON e.salary BETWEEN g.lowest_sal AND g.highest_sal
+ORDER BY g.grade_level DESC, e.salary DESC;
+
+Los tres empleados mejor pagados de cada cargo con su título — Subconsulta, JOIN y CASE
+SELECT j.job_title, e.last_name, e.salary,
+       CASE WHEN e.salary = (SELECT MAX(salary) FROM hr.employees WHERE job_id = e.job_id)
+            THEN 'Mejor pagado del cargo'
+            ELSE 'Otro'
+       END AS posicion
+FROM hr.employees e
+JOIN hr.jobs j ON e.job_id = j.job_id
+ORDER BY j.job_title, e.salary DESC;
