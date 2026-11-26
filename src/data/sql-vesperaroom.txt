@@ -1,0 +1,1243 @@
+SQL
+Consultas en MySQL 8.0 sobre la base de datos vesperaroom (sistema de reservas de moteles), organizadas por temas del curso: SELECT, filtros, funciones de una fila, conversiones, funciones de grupo, JOIN, subconsultas, operadores de conjunto, CTE y funciones de ventana, DML, DDL, integridad, usuarios y permisos, rendimiento, programación en la base de datos y consultas integradoras de negocio. Cada consulta indica el problema que resuelve y el concepto que practica.
+
+Notas para la página:
+- Todo está escrito para MySQL 8.0 (versión 8.0.46) y se ejecuta sobre la base vesperaroom, alojada en una máquina virtual con Oracle Linux 9.8. Se puede ejecutar desde el cliente de consola (mysql -u root -p vesperaroom) o desde MySQL Workbench.
+- La base tiene 19 tablas normalizadas hasta la tercera forma normal (3FN) y la vista v_reserva_detalle. Tablas: departamento, ciudad, usuario, perfil_propietario, motel, politica_reserva, tipo_habitacion, caracteristica, tipo_habitacion_caracteristica, habitacion, foto, modalidad, tarifa, servicio_adicional, reserva, reserva_servicio, pago, resena y respuesta_propietario.
+- Valores permitidos: usuario.rol (ADMINISTRADOR, CLIENTE, PROPIETARIO), usuario.estado (ACTIVO, INACTIVO), habitacion.estado (ACTIVA, MANTENIMIENTO, FUERA_DE_SERVICIO), reserva.estado (PENDIENTE, CONFIRMADA, EN_CURSO, FINALIZADA, CANCELADA, NO_SHOW), pago.estado (PENDIENTE, APROBADO, RECHAZADO, REEMBOLSADO). Un pago confirmado es un pago con estado APROBADO.
+- Cada sentencia termina en punto y coma. En MySQL Workbench cada consulta se ejecuta sola con Ctrl+Enter. Las que usan \G, DELIMITER o varias sentencias seguidas se ejecutan como script (rayo) o desde el cliente de consola.
+- Las consultas que modifican datos (bloque 11) van dentro de una transacción y terminan en ROLLBACK, para no alterar los datos de prueba. Las del bloque 12 (DDL) y del bloque 16 (programación) se ejecutan en una base aparte llamada practica y deben correrse en orden.
+- Las consultas de los bloques 13 y 14 muestran errores esperados o requieren el usuario root.
+- Actualizar los contadores de la parte superior (consultas, bloques y tablas) según el total real de consultas de este texto.
+- Objetivo de aprendizaje: Consultar, crear y administrar una base de datos relacional en MySQL con todo lo visto en el curso: filtros, funciones, agrupaciones, uniones, subconsultas, transacciones, restricciones de integridad, permisos y rendimiento.
+
+Bloque 1: Explorar la base de datos
+Comandos para conocer la estructura de la base: bases, tablas, columnas, índices, claves foráneas y restricciones.
+
+Bases de datos que existen en el servidor — SHOW DATABASES
+SHOW DATABASES;
+
+Seleccionar la base de trabajo — USE
+USE vesperaroom;
+
+Tablas y vistas de la base — SHOW FULL TABLES
+SHOW FULL TABLES;
+
+Solo las vistas de la base — SHOW FULL TABLES con filtro
+SHOW FULL TABLES WHERE Table_type = 'VIEW';
+
+Estructura de la tabla de usuarios — DESCRIBE
+DESCRIBE usuario;
+
+Estructura de la tabla de reservas — DESCRIBE
+DESCRIBE reserva;
+
+Sentencia de creación de la tabla habitacion con sus restricciones — SHOW CREATE TABLE
+SHOW CREATE TABLE habitacion\G
+
+Índices de la tabla de reservas — SHOW INDEX
+SHOW INDEX FROM reserva;
+
+Columnas de la tabla pago desde el catálogo del sistema — information_schema.columns
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema = 'vesperaroom' AND table_name = 'pago'
+ORDER BY ordinal_position;
+
+Todas las claves foráneas del esquema — information_schema.key_column_usage
+SELECT table_name, column_name, constraint_name, referenced_table_name, referenced_column_name
+FROM information_schema.key_column_usage
+WHERE table_schema = 'vesperaroom' AND referenced_table_name IS NOT NULL
+ORDER BY table_name;
+
+Todas las restricciones CHECK del esquema — information_schema.table_constraints
+SELECT table_name, constraint_name
+FROM information_schema.table_constraints
+WHERE table_schema = 'vesperaroom' AND constraint_type = 'CHECK'
+ORDER BY table_name;
+
+Versión del servidor y base actual — Funciones del sistema
+SELECT VERSION() AS version, DATABASE() AS base_actual;
+
+Bloque 2: Recuperar datos con SELECT
+Consultas sobre una sola tabla: columnas, alias, aritmética, NULL, concatenación, literales y DISTINCT.
+
+Mostrar todos los departamentos — SELECT *
+SELECT * FROM departamento;
+
+Ciudad y departamento al que pertenece cada una — Columnas específicas
+SELECT id_ciudad, id_departamento, nombre FROM ciudad;
+
+Nombre y correo de los usuarios con encabezados en español — Alias de columna
+SELECT nombre AS "Nombre", correo AS "Correo electrónico" FROM usuario;
+
+Precio de cada tarifa con IVA del 19 por ciento — Expresiones aritméticas
+SELECT id_tarifa, precio, precio * 1.19 AS precio_con_iva FROM tarifa;
+
+Efecto de los paréntesis en un cálculo — Precedencia de operadores
+SELECT precio, precio + 10000 * 2 AS sin_parentesis, (precio + 10000) * 2 AS con_parentesis
+FROM tarifa;
+
+Total menos reembolso de cada reserva, nulo si no hubo reembolso — Aritmética con NULL
+SELECT codigo_reserva, total, monto_reembolso, total - monto_reembolso AS neto
+FROM reserva;
+
+Nombre completo de cada usuario — CONCAT
+SELECT CONCAT(nombre, ' ', apellido) AS nombre_completo, correo FROM usuario;
+
+Dirección de cada motel en una sola columna — CONCAT_WS
+SELECT nombre, CONCAT_WS(' ', 'Calle', calle, 'Carrera', carrera) AS direccion FROM motel;
+
+Frase descriptiva de cada reserva — Literales de texto
+SELECT CONCAT('La reserva ', codigo_reserva, ' está en estado ', estado) AS detalle FROM reserva;
+
+Roles que existen en el sistema, sin repetir — DISTINCT
+SELECT DISTINCT rol FROM usuario;
+
+Estados en los que hay reservas — DISTINCT
+SELECT DISTINCT estado FROM reserva;
+
+Combinaciones distintas de motel y estado de habitación — DISTINCT con varias columnas
+SELECT DISTINCT id_motel, estado FROM habitacion;
+
+Fecha y hora actual del servidor — SELECT sin tabla
+SELECT NOW() AS ahora, CURDATE() AS hoy, CURTIME() AS hora;
+
+Datos fijos sin consultar ninguna tabla — Constantes
+SELECT 'VesperaRoom' AS sistema, 19 AS tablas, 'MySQL 8.0' AS motor;
+
+Bloque 3: Restringir y ordenar los datos
+Filtros con WHERE y sus operadores, ordenamiento, límite de filas y paginación.
+
+Usuarios con rol de cliente — WHERE con texto
+SELECT id_usuario, nombre, apellido, correo FROM usuario WHERE rol = 'CLIENTE';
+
+Clientes que están activos — AND
+SELECT nombre, apellido FROM usuario WHERE rol = 'CLIENTE' AND estado = 'ACTIVO';
+
+Clientes o propietarios — OR
+SELECT correo, rol FROM usuario WHERE rol = 'CLIENTE' OR rol = 'PROPIETARIO';
+
+Usuarios que no son administradores — NOT
+SELECT correo, rol FROM usuario WHERE NOT rol = 'ADMINISTRADOR';
+
+Usuarios que no están activos — Operador distinto de
+SELECT correo, estado FROM usuario WHERE estado <> 'ACTIVO';
+
+Reservas de más de 100000 — Operador mayor que
+SELECT codigo_reserva, total FROM reserva WHERE total > 100000;
+
+Reservas con total entre 100000 y 300000 — BETWEEN
+SELECT codigo_reserva, total FROM reserva WHERE total BETWEEN 100000 AND 300000;
+
+Reservas confirmadas o finalizadas — IN
+SELECT codigo_reserva, estado FROM reserva WHERE estado IN ('CONFIRMADA', 'FINALIZADA');
+
+Reservas que no están canceladas ni en no show — NOT IN
+SELECT codigo_reserva, estado FROM reserva WHERE estado NOT IN ('CANCELADA', 'NO_SHOW');
+
+Usuarios registrados desde septiembre de 2026 — WHERE con fechas
+SELECT correo, fecha_registro FROM usuario WHERE fecha_registro >= '2026-09-01';
+
+Usuarios registrados durante agosto de 2026 — BETWEEN con fechas
+SELECT correo, fecha_registro FROM usuario
+WHERE fecha_registro BETWEEN '2026-08-01 00:00:00' AND '2026-08-31 23:59:59';
+
+Usuarios con correo del dominio vesperaroom.com — LIKE con %
+SELECT correo FROM usuario WHERE correo LIKE '%@vesperaroom.com';
+
+Usuarios cuyo apellido empieza por G — LIKE al inicio
+SELECT nombre, apellido FROM usuario WHERE apellido LIKE 'G%';
+
+Usuarios cuyo nombre tiene una a en la segunda posición — LIKE con _
+SELECT nombre, apellido FROM usuario WHERE nombre LIKE '_a%';
+
+Usuarios cuyo apellido termina en ez — LIKE al final
+SELECT nombre, apellido FROM usuario WHERE apellido LIKE '%ez';
+
+Teléfonos celulares colombianos válidos, de diez dígitos que empiezan por 3 — REGEXP
+SELECT correo, telefono FROM usuario WHERE telefono REGEXP '^3[0-9]{9}$';
+
+Moteles que no tienen descripción — IS NULL
+SELECT id_motel, nombre FROM motel WHERE descripcion IS NULL;
+
+Moteles que sí tienen descripción — IS NOT NULL
+SELECT id_motel, nombre FROM motel WHERE descripcion IS NOT NULL;
+
+Reservas que nunca fueron canceladas — IS NULL en una fecha
+SELECT codigo_reserva, estado FROM reserva WHERE fecha_cancelacion IS NULL;
+
+Habitaciones activas del segundo piso en adelante — AND con comparación
+SELECT numero, piso, estado FROM habitacion WHERE piso >= 2 AND estado = 'ACTIVA';
+
+Usuarios del más reciente al más antiguo — ORDER BY DESC
+SELECT correo, fecha_registro FROM usuario ORDER BY fecha_registro DESC;
+
+Usuarios ordenados por apellido y luego por nombre — ORDER BY con varias columnas
+SELECT apellido, nombre FROM usuario ORDER BY apellido ASC, nombre ASC;
+
+Reservas por estado en el orden del ciclo de vida — ORDER BY FIELD
+SELECT codigo_reserva, estado FROM reserva
+ORDER BY FIELD(estado, 'PENDIENTE', 'CONFIRMADA', 'EN_CURSO', 'FINALIZADA', 'CANCELADA', 'NO_SHOW');
+
+Reembolsos de menor a mayor, dejando los nulos al final — ORDER BY con NULL al final
+SELECT codigo_reserva, monto_reembolso FROM reserva
+ORDER BY monto_reembolso IS NULL, monto_reembolso;
+
+Las tres reservas más caras — LIMIT
+SELECT codigo_reserva, total FROM reserva ORDER BY total DESC LIMIT 3;
+
+Segunda página de resultados de dos en dos — LIMIT con OFFSET
+SELECT codigo_reserva, total FROM reserva ORDER BY total DESC LIMIT 2 OFFSET 2;
+
+Bloque 4: Funciones de una sola fila
+Funciones de texto, numéricas y de fecha que devuelven un resultado por cada fila.
+
+Apellido en mayúsculas y correo en minúsculas — UPPER y LOWER
+SELECT UPPER(apellido) AS apellido, LOWER(correo) AS correo FROM usuario;
+
+Buscar un correo sin importar cómo esté escrito — LOWER en el WHERE
+SELECT nombre, correo FROM usuario WHERE LOWER(correo) = 'cliente1@vesperaroom.com';
+
+Cantidad de letras del nombre de cada motel — CHAR_LENGTH
+SELECT nombre, CHAR_LENGTH(nombre) AS letras FROM motel;
+
+Iniciales de cada usuario — LEFT y CONCAT
+SELECT CONCAT(LEFT(nombre, 1), LEFT(apellido, 1)) AS iniciales, nombre, apellido FROM usuario;
+
+Primeras tres letras del código de reserva y el resto — SUBSTRING
+SELECT codigo_reserva, SUBSTRING(codigo_reserva, 1, 2) AS prefijo, SUBSTRING(codigo_reserva, 4) AS identificador
+FROM reserva;
+
+Últimos cuatro dígitos del teléfono — RIGHT
+SELECT correo, RIGHT(telefono, 4) AS ultimos_cuatro FROM usuario;
+
+Posición de la arroba en cada correo — LOCATE
+SELECT correo, LOCATE('@', correo) AS posicion_arroba FROM usuario;
+
+Dominio de cada correo — SUBSTRING_INDEX
+SELECT correo, SUBSTRING_INDEX(correo, '@', -1) AS dominio FROM usuario;
+
+Parte local del correo antes de la arroba — SUBSTRING_INDEX
+SELECT correo, SUBSTRING_INDEX(correo, '@', 1) AS usuario_correo FROM usuario;
+
+Código de reserva sin guion — REPLACE
+SELECT codigo_reserva, REPLACE(codigo_reserva, '-', '') AS codigo_limpio FROM reserva;
+
+Número de habitación con ceros a la izquierda — LPAD
+SELECT numero, LPAD(numero, 6, '0') AS numero_relleno FROM habitacion;
+
+Nombre del motel con puntos de relleno para alinear — RPAD
+SELECT CONCAT(RPAD(nombre, 20, '.'), estado) AS listado FROM motel;
+
+Quitar espacios sobrantes de un texto — TRIM
+SELECT TRIM('   VesperaRoom   ') AS sin_espacios;
+
+Nombre de cada motel al revés — REVERSE
+SELECT nombre, REVERSE(nombre) AS invertido FROM motel;
+
+Un mismo número redondeado de tres formas — ROUND
+SELECT ROUND(45.923, 2) AS dos_decimales, ROUND(45.923, 0) AS entero, ROUND(45.923, -1) AS decena;
+
+Un mismo número truncado — TRUNCATE
+SELECT TRUNCATE(45.923, 2) AS dos_decimales, TRUNCATE(45.923, 0) AS entero;
+
+Precio por hora de cada tarifa — División y ROUND con JOIN
+SELECT ta.id_tarifa, mo.nombre AS modalidad, ta.precio,
+       ROUND(ta.precio / mo.duracion_horas, 2) AS precio_por_hora
+FROM tarifa ta JOIN modalidad mo ON mo.id_modalidad = ta.id_modalidad;
+
+Total de cada reserva redondeado hacia arriba y hacia abajo a miles — CEIL y FLOOR
+SELECT codigo_reserva, total, CEIL(total / 1000) * 1000 AS hacia_arriba, FLOOR(total / 1000) * 1000 AS hacia_abajo
+FROM reserva;
+
+Habitaciones con número de identificación par — MOD
+SELECT id_habitacion, numero FROM habitacion WHERE MOD(id_habitacion, 2) = 0;
+
+Diferencia absoluta entre el total y el pagado de una reserva — ABS
+SELECT codigo_reserva, ABS(total - 190000) AS diferencia FROM reserva;
+
+Días que lleva registrado cada usuario — DATEDIFF
+SELECT correo, DATEDIFF(CURDATE(), fecha_registro) AS dias_registrado FROM usuario;
+
+Duración en horas de cada reserva — TIMESTAMPDIFF
+SELECT codigo_reserva, TIMESTAMPDIFF(HOUR, fecha_hora_inicio, fecha_hora_fin) AS horas FROM reserva;
+
+Fecha límite 30 días después de la creación de cada reserva — DATE_ADD
+SELECT codigo_reserva, fecha_creacion, DATE_ADD(fecha_creacion, INTERVAL 30 DAY) AS fecha_limite
+FROM reserva;
+
+Fecha de hace una semana — DATE_SUB
+SELECT DATE_SUB(CURDATE(), INTERVAL 7 DAY) AS hace_una_semana;
+
+Último día del mes de registro de cada usuario — LAST_DAY
+SELECT correo, fecha_registro, LAST_DAY(fecha_registro) AS fin_de_mes FROM usuario;
+
+Año, mes y día de inicio de cada reserva — YEAR, MONTH y DAY
+SELECT codigo_reserva, YEAR(fecha_hora_inicio) AS anio, MONTH(fecha_hora_inicio) AS mes, DAY(fecha_hora_inicio) AS dia
+FROM reserva;
+
+Día de la semana en que empieza cada reserva — DAYNAME
+SELECT codigo_reserva, DAYNAME(fecha_hora_inicio) AS dia_semana FROM reserva;
+
+Reservas que empiezan en fin de semana — WEEKDAY
+SELECT codigo_reserva, fecha_hora_inicio FROM reserva WHERE WEEKDAY(fecha_hora_inicio) IN (5, 6);
+
+Hora de entrada de cada reserva — HOUR y TIME
+SELECT codigo_reserva, TIME(fecha_hora_inicio) AS hora_entrada, HOUR(fecha_hora_inicio) AS hora FROM reserva;
+
+Reservas de octubre de 2026 — EXTRACT
+SELECT codigo_reserva, fecha_hora_inicio FROM reserva
+WHERE EXTRACT(YEAR_MONTH FROM fecha_hora_inicio) = 202610;
+
+Bloque 5: Conversión de datos y expresiones condicionales
+Formato de fechas y números, conversión de tipos, manejo de nulos y condiciones dentro del SELECT.
+
+Fecha de registro con formato día, mes y año — DATE_FORMAT
+SELECT correo, DATE_FORMAT(fecha_registro, '%d/%m/%Y') AS fecha FROM usuario;
+
+Fecha y hora de cada reserva con formato legible — DATE_FORMAT con hora
+SELECT codigo_reserva, DATE_FORMAT(fecha_hora_inicio, '%d/%m/%Y %H:%i') AS inicio FROM reserva;
+
+Total de cada reserva con separador de miles — FORMAT
+SELECT codigo_reserva, FORMAT(total, 0) AS total_formateado FROM reserva;
+
+Convertir un texto a fecha y buscar con ella — STR_TO_DATE
+SELECT codigo_reserva, fecha_hora_inicio FROM reserva
+WHERE fecha_hora_inicio >= STR_TO_DATE('01/11/2026', '%d/%m/%Y');
+
+Convertir texto a número y operar con él — CAST
+SELECT CAST('1500' AS UNSIGNED) + 500 AS suma, CAST('45.90' AS DECIMAL(10,2)) AS decimal_convertido;
+
+Total de la reserva convertido a texto — CAST a CHAR
+SELECT codigo_reserva, CONCAT('$', CAST(total AS CHAR)) AS total_texto FROM reserva;
+
+Reembolso de cada reserva, mostrando 0 cuando no hubo — IFNULL
+SELECT codigo_reserva, IFNULL(monto_reembolso, 0) AS reembolso FROM reserva;
+
+Primer dato no nulo entre varias columnas — COALESCE
+SELECT codigo_reserva, COALESCE(monto_reembolso, total, 0) AS valor FROM reserva;
+
+Evitar una división entre cero — NULLIF
+SELECT codigo_reserva, total / NULLIF(TIMESTAMPDIFF(HOUR, fecha_hora_inicio, fecha_hora_fin), 0) AS valor_por_hora
+FROM reserva;
+
+Indicar si una reserva tuvo reembolso — IF
+SELECT codigo_reserva, IF(monto_reembolso IS NULL, 'Sin reembolso', 'Con reembolso') AS situacion FROM reserva;
+
+Clasificar las reservas según su total — CASE de búsqueda
+SELECT codigo_reserva, total,
+       CASE WHEN total >= 300000 THEN 'ALTO'
+            WHEN total >= 100000 THEN 'MEDIO'
+            ELSE 'BAJO' END AS rango
+FROM reserva;
+
+Nombre legible del estado de cada habitación — CASE simple
+SELECT numero,
+       CASE estado WHEN 'ACTIVA' THEN 'Disponible'
+                   WHEN 'MANTENIMIENTO' THEN 'En mantenimiento'
+                   ELSE 'Fuera de servicio' END AS situacion
+FROM habitacion;
+
+Bloque 6: Funciones de grupo
+Agregaciones sobre conjuntos de filas: COUNT, SUM, AVG, MIN, MAX, GROUP BY, HAVING y GROUP_CONCAT.
+
+Cantidad de usuarios registrados — COUNT(*)
+SELECT COUNT(*) AS total_usuarios FROM usuario;
+
+Moteles con y sin descripción — COUNT(columna) ignora los nulos
+SELECT COUNT(*) AS moteles, COUNT(descripcion) AS con_descripcion FROM motel;
+
+Clientes distintos que han hecho reservas — COUNT(DISTINCT)
+SELECT COUNT(DISTINCT id_usuario) AS clientes_con_reservas FROM reserva;
+
+Suma, promedio, mínimo y máximo del total de las reservas — SUM, AVG, MIN y MAX
+SELECT SUM(total) AS suma, ROUND(AVG(total), 2) AS promedio, MIN(total) AS minimo, MAX(total) AS maximo
+FROM reserva;
+
+Usuarios por rol — GROUP BY
+SELECT rol, COUNT(*) AS total FROM usuario GROUP BY rol;
+
+Usuarios por rol y estado — GROUP BY con dos columnas
+SELECT rol, estado, COUNT(*) AS total FROM usuario GROUP BY rol, estado ORDER BY rol, estado;
+
+Reservas y monto total por estado — COUNT y SUM por grupo
+SELECT estado, COUNT(*) AS reservas, SUM(total) AS monto FROM reserva GROUP BY estado;
+
+Habitaciones por estado — GROUP BY
+SELECT estado, COUNT(*) AS habitaciones FROM habitacion GROUP BY estado;
+
+Moteles por ciudad — GROUP BY con JOIN
+SELECT c.nombre AS ciudad, COUNT(m.id_motel) AS moteles
+FROM ciudad c LEFT JOIN motel m ON m.id_ciudad = c.id_ciudad
+GROUP BY c.id_ciudad, c.nombre;
+
+Pagos y total recaudado por método de pago — GROUP BY
+SELECT metodo_pago, COUNT(*) AS pagos, SUM(monto) AS total FROM pago GROUP BY metodo_pago;
+
+Estados con más de una reserva — HAVING
+SELECT estado, COUNT(*) AS reservas FROM reserva GROUP BY estado HAVING COUNT(*) > 1;
+
+Clientes que han gastado más de 100000 — HAVING con SUM
+SELECT id_usuario, COUNT(*) AS reservas, SUM(total) AS gastado
+FROM reserva GROUP BY id_usuario HAVING SUM(total) > 100000;
+
+Diferencia entre WHERE y HAVING: reservas no canceladas agrupadas por estado — WHERE antes de agrupar
+SELECT estado, SUM(total) AS monto FROM reserva WHERE estado <> 'CANCELADA'
+GROUP BY estado HAVING SUM(total) > 100000;
+
+Números de habitación de cada motel en una sola fila — GROUP_CONCAT
+SELECT m.nombre AS motel, GROUP_CONCAT(h.numero ORDER BY h.numero SEPARATOR ', ') AS habitaciones
+FROM motel m JOIN habitacion h ON h.id_motel = m.id_motel
+GROUP BY m.id_motel, m.nombre;
+
+Total general y subtotales de reservas por estado — WITH ROLLUP
+SELECT estado, COUNT(*) AS reservas, SUM(total) AS monto
+FROM reserva GROUP BY estado WITH ROLLUP;
+
+Ingresos aprobados por mes — GROUP BY con DATE_FORMAT
+SELECT DATE_FORMAT(fecha_pago, '%Y-%m') AS mes, SUM(monto) AS ingresos
+FROM pago WHERE estado = 'APROBADO' GROUP BY mes ORDER BY mes;
+
+Reservas por día de la semana — GROUP BY con DAYNAME
+SELECT DAYNAME(fecha_hora_inicio) AS dia, COUNT(*) AS reservas FROM reserva GROUP BY dia;
+
+Promedio de personas por reserva — AVG
+SELECT ROUND(AVG(cantidad_personas), 2) AS promedio_personas FROM reserva;
+
+Cuántas reseñas hay por cada calificación — GROUP BY
+SELECT calificacion, COUNT(*) AS resenas FROM resena GROUP BY calificacion ORDER BY calificacion DESC;
+
+Tarifa más cara y más barata por tipo de habitación — MIN y MAX por grupo
+SELECT t.nombre AS tipo, MIN(ta.precio) AS minimo, MAX(ta.precio) AS maximo
+FROM tarifa ta JOIN tipo_habitacion t ON t.id_tipo = ta.id_tipo
+GROUP BY t.id_tipo, t.nombre;
+
+Total vendido en servicios adicionales — SUM de un producto
+SELECT SUM(cantidad * precio_unitario) AS total_servicios FROM reserva_servicio;
+
+Bloque 7: JOIN
+Unión de varias tablas por sus claves foráneas: INNER, LEFT, RIGHT, CROSS, autojoin, USING y consultas de "los que no tienen".
+
+Motel con su ciudad — INNER JOIN
+SELECT m.nombre AS motel, c.nombre AS ciudad
+FROM motel m JOIN ciudad c ON c.id_ciudad = m.id_ciudad;
+
+Motel con su ciudad y su departamento — JOIN de tres tablas
+SELECT m.nombre AS motel, c.nombre AS ciudad, d.nombre AS departamento
+FROM motel m
+JOIN ciudad c ON c.id_ciudad = m.id_ciudad
+JOIN departamento d ON d.id_departamento = c.id_departamento
+ORDER BY d.nombre, c.nombre, m.nombre;
+
+Ciudad con su departamento usando la columna común — JOIN con USING
+SELECT c.nombre AS ciudad, d.nombre AS departamento
+FROM ciudad c JOIN departamento d USING (id_departamento);
+
+Moteles con el nombre de su propietario — JOIN entre perfil y usuario
+SELECT m.nombre AS motel, CONCAT(u.nombre, ' ', u.apellido) AS propietario
+FROM motel m
+JOIN perfil_propietario p ON p.id_usuario = m.id_propietario
+JOIN usuario u ON u.id_usuario = p.id_usuario;
+
+Datos bancarios de cada propietario — JOIN uno a uno
+SELECT u.correo, p.razon_social, p.banco, p.tipo_cuenta
+FROM perfil_propietario p JOIN usuario u ON u.id_usuario = p.id_usuario;
+
+Habitaciones con su tipo y su motel — JOIN con varias tablas
+SELECT m.nombre AS motel, h.numero, h.piso, t.nombre AS tipo, t.capacidad_personas
+FROM habitacion h
+JOIN tipo_habitacion t ON t.id_tipo = h.id_tipo
+JOIN motel m ON m.id_motel = h.id_motel
+ORDER BY m.nombre, h.numero;
+
+Tarifas con motel, tipo y modalidad — JOIN de cuatro tablas
+SELECT m.nombre AS motel, t.nombre AS tipo, mo.nombre AS modalidad, mo.duracion_horas, ta.tipo_dia, ta.precio
+FROM tarifa ta
+JOIN tipo_habitacion t ON t.id_tipo = ta.id_tipo
+JOIN motel m ON m.id_motel = t.id_motel
+JOIN modalidad mo ON mo.id_modalidad = ta.id_modalidad
+ORDER BY m.nombre, t.nombre, mo.duracion_horas;
+
+Características de cada tipo de habitación en una fila — JOIN en una relación muchos a muchos
+SELECT t.nombre AS tipo, GROUP_CONCAT(c.nombre ORDER BY c.nombre SEPARATOR ', ') AS caracteristicas
+FROM tipo_habitacion t
+JOIN tipo_habitacion_caracteristica thc ON thc.id_tipo = t.id_tipo
+JOIN caracteristica c ON c.id_caracteristica = thc.id_caracteristica
+GROUP BY t.id_tipo, t.nombre;
+
+Reservas con el nombre del cliente — JOIN
+SELECT r.codigo_reserva, CONCAT(u.nombre, ' ', u.apellido) AS cliente, r.estado, r.total
+FROM reserva r JOIN usuario u ON u.id_usuario = r.id_usuario;
+
+Reservas con cliente, motel, ciudad, habitación y modalidad — JOIN de siete tablas
+SELECT r.codigo_reserva, CONCAT(u.nombre, ' ', u.apellido) AS cliente, m.nombre AS motel, c.nombre AS ciudad,
+       h.numero AS habitacion, t.nombre AS tipo, mo.nombre AS modalidad, r.estado, r.total
+FROM reserva r
+JOIN usuario u ON u.id_usuario = r.id_usuario
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel
+JOIN ciudad c ON c.id_ciudad = m.id_ciudad
+JOIN tipo_habitacion t ON t.id_tipo = h.id_tipo
+JOIN tarifa ta ON ta.id_tarifa = r.id_tarifa
+JOIN modalidad mo ON mo.id_modalidad = ta.id_modalidad
+ORDER BY r.fecha_hora_inicio;
+
+Precio de la tarifa frente al total cobrado en cada reserva — JOIN con columnas comparadas
+SELECT r.codigo_reserva, ta.precio AS precio_tarifa, r.total, r.total - ta.precio AS diferencia
+FROM reserva r JOIN tarifa ta ON ta.id_tarifa = r.id_tarifa;
+
+Pagos con su reserva y su cliente — JOIN
+SELECT p.id_pago, r.codigo_reserva, CONCAT(u.nombre, ' ', u.apellido) AS cliente, p.monto, p.metodo_pago, p.estado
+FROM pago p
+JOIN reserva r ON r.id_reserva = p.id_reserva
+JOIN usuario u ON u.id_usuario = r.id_usuario;
+
+Servicios adicionales contratados en cada reserva — JOIN en una relación muchos a muchos
+SELECT r.codigo_reserva, s.nombre AS servicio, rs.cantidad, rs.precio_unitario, rs.cantidad * rs.precio_unitario AS subtotal
+FROM reserva_servicio rs
+JOIN reserva r ON r.id_reserva = rs.id_reserva
+JOIN servicio_adicional s ON s.id_servicio = rs.id_servicio;
+
+Reseñas con el cliente y el motel calificado — JOIN
+SELECT m.nombre AS motel, CONCAT(u.nombre, ' ', u.apellido) AS cliente, rs.calificacion, rs.comentario
+FROM resena rs
+JOIN reserva r ON r.id_reserva = rs.id_reserva
+JOIN usuario u ON u.id_usuario = r.id_usuario
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel;
+
+Reseñas con la respuesta del propietario, aunque no la tengan — LEFT JOIN
+SELECT rs.id_resena, rs.calificacion, rs.comentario, rp.comentario AS respuesta
+FROM resena rs LEFT JOIN respuesta_propietario rp ON rp.id_resena = rs.id_resena;
+
+Moteles con su cantidad de habitaciones, incluso los que tienen cero — LEFT JOIN con COUNT
+SELECT m.nombre AS motel, COUNT(h.id_habitacion) AS habitaciones
+FROM motel m LEFT JOIN habitacion h ON h.id_motel = m.id_motel
+GROUP BY m.id_motel, m.nombre;
+
+Todos los moteles con sus habitaciones — RIGHT JOIN
+SELECT m.nombre AS motel, h.numero
+FROM habitacion h RIGHT JOIN motel m ON m.id_motel = h.id_motel;
+
+Clientes que nunca han reservado — LEFT JOIN con IS NULL
+SELECT u.id_usuario, u.correo
+FROM usuario u LEFT JOIN reserva r ON r.id_usuario = u.id_usuario
+WHERE u.rol = 'CLIENTE' AND r.id_reserva IS NULL;
+
+Habitaciones que nunca han sido reservadas — LEFT JOIN con IS NULL
+SELECT h.id_habitacion, h.numero
+FROM habitacion h LEFT JOIN reserva r ON r.id_habitacion = h.id_habitacion
+WHERE r.id_reserva IS NULL;
+
+Reservas sin ningún pago aprobado — LEFT JOIN con condición en el ON
+SELECT r.codigo_reserva, r.total
+FROM reserva r LEFT JOIN pago p ON p.id_reserva = r.id_reserva AND p.estado = 'APROBADO'
+WHERE p.id_pago IS NULL;
+
+Reservas que no tienen reseña — LEFT JOIN con IS NULL
+SELECT r.codigo_reserva, r.estado
+FROM reserva r LEFT JOIN resena rs ON rs.id_reserva = r.id_reserva
+WHERE rs.id_resena IS NULL;
+
+Todas las combinaciones posibles de tipo de habitación y modalidad — CROSS JOIN
+SELECT t.nombre AS tipo, mo.nombre AS modalidad
+FROM tipo_habitacion t CROSS JOIN modalidad mo;
+
+Parejas de habitaciones del mismo piso en el mismo motel — Autojoin
+SELECT h1.numero AS habitacion_a, h2.numero AS habitacion_b, h1.piso
+FROM habitacion h1
+JOIN habitacion h2 ON h1.id_motel = h2.id_motel AND h1.piso = h2.piso AND h1.id_habitacion < h2.id_habitacion;
+
+Fotos de cada motel en orden — JOIN con ORDER BY
+SELECT m.nombre AS motel, f.orden, f.uri
+FROM foto f JOIN motel m ON m.id_motel = f.id_motel
+ORDER BY m.nombre, f.orden;
+
+Detalle de reservas desde la vista del proyecto — Consulta sobre una vista
+SELECT * FROM v_reserva_detalle;
+
+Bloque 8: Subconsultas
+Consultas dentro de otras consultas: de una fila, de varias filas, correlacionadas y tablas derivadas.
+
+Reservas con total mayor al promedio — Subconsulta escalar
+SELECT codigo_reserva, total FROM reserva WHERE total > (SELECT AVG(total) FROM reserva);
+
+La reserva más cara — Subconsulta con MAX
+SELECT codigo_reserva, total FROM reserva WHERE total = (SELECT MAX(total) FROM reserva);
+
+Clientes que tienen alguna reserva cancelada — Subconsulta con IN
+SELECT correo FROM usuario
+WHERE id_usuario IN (SELECT id_usuario FROM reserva WHERE estado = 'CANCELADA');
+
+Usuarios que tienen al menos una reserva — Subconsulta con EXISTS
+SELECT u.correo FROM usuario u
+WHERE EXISTS (SELECT 1 FROM reserva r WHERE r.id_usuario = u.id_usuario);
+
+Moteles sin ninguna reserva — Subconsulta con NOT EXISTS
+SELECT m.nombre FROM motel m
+WHERE NOT EXISTS (
+      SELECT 1 FROM reserva r JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+      WHERE h.id_motel = m.id_motel);
+
+Reservas con total mayor al promedio de su propio motel — Subconsulta correlacionada
+SELECT r.codigo_reserva, r.total
+FROM reserva r JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+WHERE r.total > (SELECT AVG(r2.total)
+                 FROM reserva r2 JOIN habitacion h2 ON h2.id_habitacion = r2.id_habitacion
+                 WHERE h2.id_motel = h.id_motel);
+
+Cantidad de reservas de cada usuario como una columna — Subconsulta en el SELECT
+SELECT u.correo, (SELECT COUNT(*) FROM reserva r WHERE r.id_usuario = u.id_usuario) AS reservas
+FROM usuario u;
+
+Tarifa más barata de cada tipo de habitación — Subconsulta correlacionada con MIN
+SELECT ta.id_tipo, ta.id_modalidad, ta.precio
+FROM tarifa ta
+WHERE ta.precio = (SELECT MIN(t2.precio) FROM tarifa t2 WHERE t2.id_tipo = ta.id_tipo);
+
+Reservas más caras que todas las canceladas — ALL
+SELECT codigo_reserva, total FROM reserva
+WHERE total > ALL (SELECT total FROM reserva WHERE estado = 'CANCELADA');
+
+Reservas más caras que al menos una finalizada — ANY
+SELECT codigo_reserva, total FROM reserva
+WHERE total > ANY (SELECT total FROM reserva WHERE estado = 'FINALIZADA');
+
+Promedio de ingresos por motel usando una tabla derivada — Subconsulta en el FROM
+SELECT ROUND(AVG(ingresos), 2) AS promedio_ingresos_por_motel
+FROM (SELECT m.id_motel, SUM(p.monto) AS ingresos
+      FROM pago p
+      JOIN reserva r ON r.id_reserva = p.id_reserva
+      JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+      JOIN motel m ON m.id_motel = h.id_motel
+      WHERE p.estado = 'APROBADO'
+      GROUP BY m.id_motel) AS t;
+
+Habitaciones libres en un rango de fechas — NOT EXISTS con solapamiento de horarios
+SELECT h.id_habitacion, h.numero
+FROM habitacion h
+WHERE h.estado = 'ACTIVA'
+  AND NOT EXISTS (
+      SELECT 1 FROM reserva r
+      WHERE r.id_habitacion = h.id_habitacion
+        AND r.estado IN ('PENDIENTE', 'CONFIRMADA', 'EN_CURSO')
+        AND r.fecha_hora_inicio < '2026-12-01 23:00:00'
+        AND r.fecha_hora_fin    > '2026-12-01 20:00:00');
+
+Bloque 9: Operadores de conjunto
+Combinar resultados de varias consultas con las mismas columnas.
+
+Correos de clientes y de propietarios en una sola lista — UNION
+SELECT correo, 'CLIENTE' AS tipo FROM usuario WHERE rol = 'CLIENTE'
+UNION
+SELECT correo, 'PROPIETARIO' FROM usuario WHERE rol = 'PROPIETARIO';
+
+Todos los estados de reservas y de pagos, con repetidos — UNION ALL
+SELECT estado, 'RESERVA' AS origen FROM reserva
+UNION ALL
+SELECT estado, 'PAGO' FROM pago;
+
+Clientes con reservas finalizadas y también canceladas — INTERSECT
+SELECT id_usuario FROM reserva WHERE estado = 'FINALIZADA'
+INTERSECT
+SELECT id_usuario FROM reserva WHERE estado = 'CANCELADA';
+
+Clientes con reservas finalizadas pero ninguna cancelada — EXCEPT
+SELECT id_usuario FROM reserva WHERE estado = 'FINALIZADA'
+EXCEPT
+SELECT id_usuario FROM reserva WHERE estado = 'CANCELADA';
+
+Lista combinada ordenada de moteles y servicios por nombre — UNION con ORDER BY
+SELECT nombre, 'MOTEL' AS tipo FROM motel
+UNION
+SELECT nombre, 'SERVICIO' FROM servicio_adicional
+ORDER BY nombre;
+
+Bloque 10: Expresiones de tabla comunes y funciones de ventana
+CTE con WITH, CTE recursiva y funciones de ventana para rankings, acumulados y comparaciones entre filas.
+
+Ranking de moteles por ingresos aprobados — CTE con RANK
+WITH ingresos AS (
+    SELECT m.id_motel, m.nombre, SUM(p.monto) AS total
+    FROM pago p
+    JOIN reserva r ON r.id_reserva = p.id_reserva
+    JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+    JOIN motel m ON m.id_motel = h.id_motel
+    WHERE p.estado = 'APROBADO'
+    GROUP BY m.id_motel, m.nombre)
+SELECT nombre, total, RANK() OVER (ORDER BY total DESC) AS posicion
+FROM ingresos;
+
+Reserva más cara de cada motel — ROW_NUMBER con PARTITION BY
+SELECT motel, codigo_reserva, total
+FROM (SELECT m.nombre AS motel, r.codigo_reserva, r.total,
+             ROW_NUMBER() OVER (PARTITION BY m.id_motel ORDER BY r.total DESC) AS n
+      FROM reserva r
+      JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+      JOIN motel m ON m.id_motel = h.id_motel) t
+WHERE n = 1;
+
+Total acumulado de las reservas en el tiempo — SUM OVER
+SELECT codigo_reserva, fecha_hora_inicio, total,
+       SUM(total) OVER (ORDER BY fecha_hora_inicio, id_reserva) AS acumulado
+FROM reserva;
+
+Porcentaje que representa cada reserva del total — SUM OVER sin partición
+SELECT codigo_reserva, total, ROUND(100 * total / SUM(total) OVER (), 2) AS porcentaje
+FROM reserva;
+
+Total de la reserva anterior del mismo cliente — LAG
+SELECT id_usuario, codigo_reserva, fecha_hora_inicio, total,
+       LAG(total) OVER (PARTITION BY id_usuario ORDER BY fecha_hora_inicio) AS total_anterior
+FROM reserva;
+
+Clientes divididos en tres grupos según su gasto — NTILE
+SELECT id_usuario, gastado, NTILE(3) OVER (ORDER BY gastado DESC) AS grupo
+FROM (SELECT id_usuario, SUM(total) AS gastado FROM reserva GROUP BY id_usuario) t;
+
+Promedio del motel junto a cada reserva — AVG OVER PARTITION BY
+SELECT m.nombre AS motel, r.codigo_reserva, r.total,
+       ROUND(AVG(r.total) OVER (PARTITION BY m.id_motel), 2) AS promedio_motel
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel;
+
+Serie de números del 1 al 5 — CTE recursiva
+WITH RECURSIVE n AS (
+    SELECT 1 AS x
+    UNION ALL
+    SELECT x + 1 FROM n WHERE x < 5)
+SELECT x FROM n;
+
+Bloque 11: Manipulación de datos con transacciones
+INSERT, UPDATE y DELETE dentro de transacciones que se deshacen con ROLLBACK para no alterar los datos de prueba.
+
+Insertar un usuario y verificarlo — INSERT
+START TRANSACTION;
+INSERT INTO usuario (nombre, apellido, correo, telefono, contrasena, rol)
+VALUES ('Prueba', 'Portafolio', 'portafolio@vesperaroom.com', '3011112222', 'x', 'CLIENTE');
+SELECT id_usuario, correo, estado, fecha_registro FROM usuario WHERE correo = 'portafolio@vesperaroom.com';
+ROLLBACK;
+
+Insertar varias filas en una sentencia — INSERT múltiple
+START TRANSACTION;
+INSERT INTO caracteristica (nombre) VALUES ('Característica A'), ('Característica B');
+SELECT * FROM caracteristica;
+ROLLBACK;
+
+Copiar las reservas canceladas a una tabla temporal — CREATE TEMPORARY TABLE AS SELECT
+CREATE TEMPORARY TABLE tmp_canceladas AS
+SELECT codigo_reserva, total, fecha_cancelacion FROM reserva WHERE estado = 'CANCELADA';
+SELECT * FROM tmp_canceladas;
+DROP TEMPORARY TABLE tmp_canceladas;
+
+Cambiar el teléfono de un usuario — UPDATE con WHERE
+START TRANSACTION;
+UPDATE usuario SET telefono = '3019998888' WHERE correo = 'cliente1@vesperaroom.com';
+SELECT correo, telefono FROM usuario WHERE correo = 'cliente1@vesperaroom.com';
+ROLLBACK;
+
+Subir un 10 por ciento las tarifas de habitaciones estándar — UPDATE con JOIN
+START TRANSACTION;
+UPDATE tarifa ta JOIN tipo_habitacion t ON t.id_tipo = ta.id_tipo
+SET ta.precio = ROUND(ta.precio * 1.10, 2)
+WHERE t.nombre = 'Estándar';
+SELECT id_tarifa, precio FROM tarifa;
+ROLLBACK;
+
+Cancelar una reserva y calcular el reembolso según la política del motel — UPDATE con JOIN y cálculo
+START TRANSACTION;
+UPDATE reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN politica_reserva p ON p.id_motel = h.id_motel
+SET r.estado = 'CANCELADA',
+    r.fecha_cancelacion = NOW(),
+    r.monto_reembolso = ROUND(r.total * p.porcentaje_reembolso / 100, 2)
+WHERE r.codigo_reserva = 'VR-J9K8L7M6';
+SELECT codigo_reserva, estado, total, monto_reembolso FROM reserva WHERE codigo_reserva = 'VR-J9K8L7M6';
+ROLLBACK;
+
+Marcar como inactivos a los clientes sin reservas — UPDATE con subconsulta
+START TRANSACTION;
+UPDATE usuario SET estado = 'INACTIVO'
+WHERE rol = 'CLIENTE' AND id_usuario NOT IN (SELECT id_usuario FROM reserva);
+SELECT correo, estado FROM usuario WHERE rol = 'CLIENTE';
+ROLLBACK;
+
+Insertar o actualizar si ya existe — INSERT con ON DUPLICATE KEY UPDATE
+START TRANSACTION;
+INSERT INTO caracteristica (nombre, icono) VALUES ('Característica A', 'icono1')
+ON DUPLICATE KEY UPDATE icono = 'icono2';
+SELECT * FROM caracteristica;
+ROLLBACK;
+
+Ignorar la fila si viola una restricción única — INSERT IGNORE
+START TRANSACTION;
+INSERT IGNORE INTO usuario (nombre, apellido, correo, telefono, contrasena, rol)
+VALUES ('Repetido', 'Prueba', 'cliente1@vesperaroom.com', '3777777777', 'x', 'CLIENTE');
+SHOW WARNINGS;
+ROLLBACK;
+
+Borrar un usuario recién creado — DELETE con WHERE
+START TRANSACTION;
+INSERT INTO usuario (nombre, apellido, correo, telefono, contrasena, rol)
+VALUES ('Temporal', 'Borrar', 'borrar@vesperaroom.com', '3055556666', 'x', 'CLIENTE');
+DELETE FROM usuario WHERE correo = 'borrar@vesperaroom.com';
+SELECT COUNT(*) AS quedan FROM usuario WHERE correo = 'borrar@vesperaroom.com';
+ROLLBACK;
+
+Deshacer solo una parte de la transacción — SAVEPOINT
+START TRANSACTION;
+SAVEPOINT antes_del_cambio;
+UPDATE usuario SET estado = 'INACTIVO' WHERE rol = 'CLIENTE';
+ROLLBACK TO antes_del_cambio;
+SELECT rol, estado, COUNT(*) AS total FROM usuario GROUP BY rol, estado;
+ROLLBACK;
+
+Bloquear una habitación mientras se decide una reserva — SELECT FOR UPDATE
+START TRANSACTION;
+SELECT id_habitacion, numero, estado FROM habitacion WHERE id_habitacion = 1 FOR UPDATE;
+ROLLBACK;
+
+Cambiar el nivel de aislamiento de la sesión — SET TRANSACTION
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SELECT @@transaction_isolation AS aislamiento;
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+Bloque 12: Definición de datos (DDL)
+Creación y modificación de tablas, restricciones, índices y vistas sobre la base practica. Ejecutar en orden.
+
+Crear la base de práctica — CREATE DATABASE
+CREATE DATABASE IF NOT EXISTS practica CHARACTER SET utf8mb4;
+USE practica;
+
+Tabla de clientes con clave primaria y correo único — CREATE TABLE con PRIMARY KEY y UNIQUE
+CREATE TABLE cliente (
+    id_cliente      INT          NOT NULL AUTO_INCREMENT,
+    nombre          VARCHAR(60)  NOT NULL,
+    correo          VARCHAR(120) NOT NULL,
+    telefono        VARCHAR(15),
+    fecha_registro  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_cliente        PRIMARY KEY (id_cliente),
+    CONSTRAINT uq_cliente_correo UNIQUE (correo)
+) ENGINE = InnoDB;
+
+Tabla de salas con reglas de negocio — CHECK
+CREATE TABLE sala (
+    id_sala      INT           NOT NULL AUTO_INCREMENT,
+    nombre       VARCHAR(60)   NOT NULL,
+    capacidad    INT           NOT NULL,
+    precio_hora  DECIMAL(10,2) NOT NULL,
+    CONSTRAINT pk_sala PRIMARY KEY (id_sala),
+    CONSTRAINT ck_sala_capacidad CHECK (capacidad BETWEEN 1 AND 50),
+    CONSTRAINT ck_sala_precio CHECK (precio_hora > 0)
+) ENGINE = InnoDB;
+
+Tabla de reservas que depende de cliente y sala — FOREIGN KEY
+CREATE TABLE reserva_sala (
+    id_reserva    INT         NOT NULL AUTO_INCREMENT,
+    id_cliente    INT         NOT NULL,
+    id_sala       INT         NOT NULL,
+    fecha_inicio  DATETIME    NOT NULL,
+    fecha_fin     DATETIME    NOT NULL,
+    estado        VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    CONSTRAINT pk_reserva_sala PRIMARY KEY (id_reserva),
+    CONSTRAINT fk_rs_cliente FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente),
+    CONSTRAINT fk_rs_sala    FOREIGN KEY (id_sala)    REFERENCES sala (id_sala),
+    CONSTRAINT ck_rs_fechas  CHECK (fecha_fin > fecha_inicio),
+    CONSTRAINT ck_rs_estado  CHECK (estado IN ('PENDIENTE', 'CONFIRMADA', 'CANCELADA'))
+) ENGINE = InnoDB;
+
+Relación muchos a muchos entre salas y equipos — Tabla intermedia con clave compuesta
+CREATE TABLE equipo (
+    id_equipo INT NOT NULL AUTO_INCREMENT,
+    nombre    VARCHAR(60) NOT NULL,
+    CONSTRAINT pk_equipo PRIMARY KEY (id_equipo)
+) ENGINE = InnoDB;
+
+CREATE TABLE sala_equipo (
+    id_sala    INT NOT NULL,
+    id_equipo  INT NOT NULL,
+    CONSTRAINT pk_sala_equipo PRIMARY KEY (id_sala, id_equipo),
+    CONSTRAINT fk_se_sala   FOREIGN KEY (id_sala)   REFERENCES sala (id_sala),
+    CONSTRAINT fk_se_equipo FOREIGN KEY (id_equipo) REFERENCES equipo (id_equipo)
+) ENGINE = InnoDB;
+
+Cargar datos de práctica — INSERT en tablas relacionadas
+INSERT INTO cliente (nombre, correo) VALUES ('Ana Ruiz', 'ana@correo.com'), ('Luis Paz', 'luis@correo.com');
+INSERT INTO sala (nombre, capacidad, precio_hora) VALUES ('Sala A', 10, 50000), ('Sala B', 20, 90000);
+INSERT INTO reserva_sala (id_cliente, id_sala, fecha_inicio, fecha_fin)
+VALUES (1, 1, '2026-12-01 10:00:00', '2026-12-01 12:00:00');
+
+Agregar, modificar, renombrar y eliminar una columna — ALTER TABLE
+ALTER TABLE cliente ADD COLUMN ciudad VARCHAR(60);
+ALTER TABLE cliente MODIFY COLUMN ciudad VARCHAR(100) NOT NULL DEFAULT 'Bogotá';
+ALTER TABLE cliente RENAME COLUMN ciudad TO municipio;
+ALTER TABLE cliente DROP COLUMN municipio;
+
+Agregar y quitar una restricción CHECK — ALTER TABLE con CONSTRAINT
+ALTER TABLE sala ADD CONSTRAINT ck_sala_nombre CHECK (CHAR_LENGTH(nombre) >= 3);
+ALTER TABLE sala DROP CHECK ck_sala_nombre;
+
+Quitar y volver a crear una clave foránea — ALTER TABLE con FOREIGN KEY
+ALTER TABLE reserva_sala DROP FOREIGN KEY fk_rs_sala;
+ALTER TABLE reserva_sala ADD CONSTRAINT fk_rs_sala FOREIGN KEY (id_sala) REFERENCES sala (id_sala);
+
+Acelerar la búsqueda por nombre de cliente — CREATE INDEX
+CREATE INDEX ix_cliente_nombre ON cliente (nombre);
+SHOW INDEX FROM cliente;
+
+Eliminar un índice — DROP INDEX
+DROP INDEX ix_cliente_nombre ON cliente;
+
+Vista con las reservas de salas y sus clientes — CREATE VIEW
+CREATE VIEW v_reservas_sala AS
+SELECT rs.id_reserva, c.nombre AS cliente, s.nombre AS sala, rs.fecha_inicio, rs.estado
+FROM reserva_sala rs
+JOIN cliente c ON c.id_cliente = rs.id_cliente
+JOIN sala s ON s.id_sala = rs.id_sala;
+SELECT * FROM v_reservas_sala;
+
+Copiar la estructura y los datos de la tabla de usuarios — CREATE TABLE LIKE e INSERT SELECT
+CREATE TABLE copia_usuario LIKE vesperaroom.usuario;
+INSERT INTO copia_usuario SELECT * FROM vesperaroom.usuario;
+SELECT COUNT(*) FROM copia_usuario;
+
+Cambiar el nombre de una tabla — RENAME TABLE
+RENAME TABLE equipo TO equipamiento;
+RENAME TABLE equipamiento TO equipo;
+
+Vaciar una tabla y reiniciar su contador — TRUNCATE
+TRUNCATE TABLE copia_usuario;
+
+Borrar objetos en orden inverso a sus dependencias — DROP
+DROP VIEW IF EXISTS v_reservas_sala;
+DROP TABLE sala_equipo;
+DROP TABLE equipo;
+DROP TABLE reserva_sala;
+DROP TABLE sala;
+DROP TABLE cliente;
+DROP TABLE copia_usuario;
+
+Bloque 13: Integridad de datos y restricciones
+Pruebas de que la base rechaza datos inválidos por sí sola. Todas deben terminar en error.
+
+Correo repetido — UNIQUE (error 1062)
+INSERT INTO usuario (nombre, apellido, correo, telefono, contrasena, rol)
+VALUES ('Prueba', 'Duplicado', 'cliente1@vesperaroom.com', '3999999999', 'x', 'CLIENTE');
+
+Teléfono con formato inválido — CHECK con expresión regular
+INSERT INTO usuario (nombre, apellido, correo, telefono, contrasena, rol)
+VALUES ('Prueba', 'Teléfono', 'tel@vesperaroom.com', 'abc', 'x', 'CLIENTE');
+
+Rol que no existe — CHECK con lista de valores
+INSERT INTO usuario (nombre, apellido, correo, telefono, contrasena, rol)
+VALUES ('Prueba', 'Rol', 'rol@vesperaroom.com', '3888888888', 'x', 'INVALIDO');
+
+Columna obligatoria sin valor — NOT NULL
+INSERT INTO usuario (nombre, apellido, telefono, contrasena, rol)
+VALUES ('Prueba', 'SinCorreo', '3666666666', 'x', 'CLIENTE');
+
+Porcentaje de reembolso mayor a 100 — CHECK con rango
+UPDATE politica_reserva SET porcentaje_reembolso = 150 WHERE id_motel = 1;
+
+Piso fuera del rango permitido — CHECK con rango
+UPDATE habitacion SET piso = 500 WHERE id_habitacion = 1;
+
+Foto que no pertenece a ningún motel ni habitación — CHECK de exclusión
+INSERT INTO foto (uri, orden) VALUES ('https://ejemplo.com/foto.jpg', 1);
+
+Reserva que termina antes de empezar — CHECK entre columnas
+INSERT INTO reserva (codigo_reserva, id_usuario, id_habitacion, id_tarifa, cantidad_personas, fecha_hora_inicio, fecha_hora_fin, total)
+VALUES ('VR-PRUEBA02', (SELECT MIN(id_usuario) FROM usuario), (SELECT MIN(id_habitacion) FROM habitacion),
+        (SELECT MIN(id_tarifa) FROM tarifa), 2, '2026-12-02 08:00:00', '2026-12-01 20:00:00', 100000);
+
+Reserva de una habitación que no existe — FOREIGN KEY (error 1452)
+INSERT INTO reserva (codigo_reserva, id_usuario, id_habitacion, id_tarifa, cantidad_personas, fecha_hora_inicio, fecha_hora_fin, total)
+VALUES ('VR-PRUEBA01', (SELECT MIN(id_usuario) FROM usuario), 9999, (SELECT MIN(id_tarifa) FROM tarifa), 2,
+        '2026-12-01 20:00:00', '2026-12-02 08:00:00', 100000);
+
+Borrar un usuario que tiene reservas — FOREIGN KEY (error 1451)
+DELETE FROM usuario WHERE id_usuario = 1;
+
+Comprobar que nada de lo anterior se guardó — Verificación
+SELECT COUNT(*) AS filas_invalidas FROM usuario WHERE correo IN ('tel@vesperaroom.com', 'rol@vesperaroom.com');
+
+Bloque 14: Usuarios, roles y permisos
+Administración de cuentas de MySQL con el usuario root. No confundir la tabla usuario (clientes de la aplicación) con las cuentas de MySQL.
+
+Cuentas de MySQL que existen — mysql.user
+SELECT user, host FROM mysql.user;
+
+Crear una cuenta con permiso solo de lectura — CREATE USER y GRANT
+CREATE USER 'estudiante'@'localhost' IDENTIFIED BY 'ClaveDemo#2026';
+GRANT SELECT ON vesperaroom.* TO 'estudiante'@'localhost';
+
+Dar permisos sobre una sola tabla — GRANT por tabla
+GRANT SELECT, INSERT, UPDATE ON vesperaroom.usuario TO 'estudiante'@'localhost';
+
+Ver los permisos de una cuenta — SHOW GRANTS
+SHOW GRANTS FOR 'estudiante'@'localhost';
+
+Quitar un permiso — REVOKE
+REVOKE INSERT ON vesperaroom.usuario FROM 'estudiante'@'localhost';
+
+Cambiar la contraseña de una cuenta — ALTER USER
+ALTER USER 'estudiante'@'localhost' IDENTIFIED BY 'OtraClave#2026';
+
+Permisos de la cuenta que usa la aplicación — Principio de mínimo privilegio
+SHOW GRANTS FOR 'vespera_app'@'%';
+
+Crear un rol y asignarlo a una cuenta — CREATE ROLE
+CREATE ROLE 'rol_lectura';
+GRANT SELECT ON vesperaroom.* TO 'rol_lectura';
+CREATE USER 'lector'@'localhost' IDENTIFIED BY 'ClaveDemo#2026';
+GRANT 'rol_lectura' TO 'lector'@'localhost';
+SET DEFAULT ROLE 'rol_lectura' TO 'lector'@'localhost';
+
+Eliminar las cuentas y el rol de prueba — DROP USER y DROP ROLE
+DROP USER 'estudiante'@'localhost';
+DROP USER 'lector'@'localhost';
+DROP ROLE 'rol_lectura';
+
+Bloque 15: Rendimiento y administración
+Análisis de consultas, índices, tamaño de las tablas y variables del servidor.
+
+Plan de ejecución de una búsqueda por habitación — EXPLAIN
+EXPLAIN SELECT * FROM reserva WHERE id_habitacion = 1;
+
+Plan de ejecución con tiempos reales — EXPLAIN ANALYZE
+EXPLAIN ANALYZE SELECT * FROM reserva WHERE id_habitacion = 1 AND fecha_hora_inicio >= '2026-10-01';
+
+Cantidad de índices por tabla — information_schema.statistics
+SELECT table_name, COUNT(DISTINCT index_name) AS indices
+FROM information_schema.statistics
+WHERE table_schema = 'vesperaroom'
+GROUP BY table_name ORDER BY indices DESC;
+
+Tamaño en disco de cada tabla — information_schema.tables
+SELECT table_name, table_rows, avg_row_length, ROUND((data_length + index_length) / 1024, 1) AS kb
+FROM information_schema.tables
+WHERE table_schema = 'vesperaroom'
+ORDER BY (data_length + index_length) DESC;
+
+Tamaño total de la base de datos en megabytes — SUM sobre el catálogo
+SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 3) AS mb
+FROM information_schema.tables WHERE table_schema = 'vesperaroom';
+
+Próximo valor automático de cada tabla — AUTO_INCREMENT
+SELECT table_name, auto_increment FROM information_schema.tables
+WHERE table_schema = 'vesperaroom' AND auto_increment IS NOT NULL;
+
+Conexiones abiertas y límite del servidor — Variables de estado
+SHOW STATUS LIKE 'Threads_connected';
+SHOW VARIABLES LIKE 'max_connections';
+
+Memoria asignada a InnoDB y nivel de aislamiento — Variables del servidor
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+SELECT @@transaction_isolation AS aislamiento;
+
+Puerto, carpeta de datos y versión — Variables del servidor
+SHOW VARIABLES WHERE Variable_name IN ('port', 'datadir', 'version');
+
+Procesos que se están ejecutando — SHOW PROCESSLIST
+SHOW PROCESSLIST;
+
+Respaldo de la base de datos desde el sistema operativo — mysqldump
+mysqldump -u root -p vesperaroom > respaldo_vesperaroom.sql
+
+Bloque 16: Programación en la base de datos
+Función, procedimiento almacenado y trigger sobre la base practica. Ejecutar con el cliente de consola o como script, porque usan DELIMITER.
+
+Función que calcula el IVA de un valor — CREATE FUNCTION
+USE practica;
+DELIMITER $$
+CREATE FUNCTION fn_iva(valor DECIMAL(12,2)) RETURNS DECIMAL(12,2) DETERMINISTIC
+BEGIN
+    RETURN ROUND(valor * 0.19, 2);
+END$$
+DELIMITER ;
+SELECT fn_iva(100000) AS iva;
+
+Procedimiento que lista las reservas de un estado — CREATE PROCEDURE con parámetro
+DELIMITER $$
+CREATE PROCEDURE sp_reservas_por_estado(IN p_estado VARCHAR(20))
+BEGIN
+    SELECT codigo_reserva, total, fecha_hora_inicio
+    FROM vesperaroom.reserva
+    WHERE estado = p_estado;
+END$$
+DELIMITER ;
+CALL sp_reservas_por_estado('CONFIRMADA');
+
+Tabla de auditoría de precios de salas — Preparación del trigger
+CREATE TABLE sala (
+    id_sala INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(60) NOT NULL,
+    precio_hora DECIMAL(10,2) NOT NULL
+) ENGINE = InnoDB;
+CREATE TABLE auditoria_sala (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_sala INT NOT NULL,
+    precio_anterior DECIMAL(10,2),
+    precio_nuevo DECIMAL(10,2),
+    fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE = InnoDB;
+INSERT INTO sala (nombre, precio_hora) VALUES ('Sala A', 50000);
+
+Trigger que registra cada cambio de precio — CREATE TRIGGER AFTER UPDATE
+DELIMITER $$
+CREATE TRIGGER trg_sala_precio AFTER UPDATE ON sala
+FOR EACH ROW
+BEGIN
+    IF OLD.precio_hora <> NEW.precio_hora THEN
+        INSERT INTO auditoria_sala (id_sala, precio_anterior, precio_nuevo)
+        VALUES (OLD.id_sala, OLD.precio_hora, NEW.precio_hora);
+    END IF;
+END$$
+DELIMITER ;
+
+Comprobar que el trigger dejó el registro — Prueba del trigger
+UPDATE sala SET precio_hora = 60000 WHERE id_sala = 1;
+SELECT * FROM auditoria_sala;
+SHOW TRIGGERS;
+
+Eliminar los objetos de programación y las tablas de práctica — DROP
+DROP TRIGGER IF EXISTS trg_sala_precio;
+DROP PROCEDURE IF EXISTS sp_reservas_por_estado;
+DROP FUNCTION IF EXISTS fn_iva;
+DROP TABLE IF EXISTS auditoria_sala;
+DROP TABLE IF EXISTS sala;
+
+Bloque 17: Consultas integradoras de negocio
+Reportes que combinan JOIN, agrupaciones, subconsultas, CASE y funciones de ventana para responder preguntas reales del negocio.
+
+Horas reservadas por motel en reservas finalizadas o confirmadas — Ocupación con JOIN y SUM
+SELECT m.nombre AS motel, COUNT(*) AS reservas,
+       SUM(TIMESTAMPDIFF(HOUR, r.fecha_hora_inicio, r.fecha_hora_fin)) AS horas_reservadas
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel
+WHERE r.estado IN ('FINALIZADA', 'CONFIRMADA')
+GROUP BY m.id_motel, m.nombre;
+
+Ingresos cobrados frente al total reservado por motel — Porcentaje de recaudo
+SELECT m.nombre AS motel, SUM(r.total) AS reservado,
+       COALESCE(SUM(pa.pagado), 0) AS cobrado,
+       ROUND(100 * COALESCE(SUM(pa.pagado), 0) / SUM(r.total), 1) AS porcentaje_cobrado
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel
+LEFT JOIN (SELECT id_reserva, SUM(monto) AS pagado FROM pago WHERE estado = 'APROBADO' GROUP BY id_reserva) pa
+       ON pa.id_reserva = r.id_reserva
+WHERE r.estado <> 'CANCELADA'
+GROUP BY m.id_motel, m.nombre;
+
+Segmentación de clientes por gasto — CASE sobre una agregación
+SELECT u.correo, COUNT(r.id_reserva) AS reservas, COALESCE(SUM(r.total), 0) AS gastado,
+       CASE WHEN COALESCE(SUM(r.total), 0) >= 300000 THEN 'PREMIUM'
+            WHEN COALESCE(SUM(r.total), 0) >= 100000 THEN 'REGULAR'
+            ELSE 'NUEVO' END AS segmento
+FROM usuario u LEFT JOIN reserva r ON r.id_usuario = u.id_usuario
+WHERE u.rol = 'CLIENTE'
+GROUP BY u.id_usuario, u.correo
+ORDER BY gastado DESC;
+
+Calificación promedio de todos los moteles, incluso los sin reseñas — LEFT JOIN con AVG
+SELECT m.nombre AS motel, COUNT(rs.id_resena) AS resenas, ROUND(AVG(rs.calificacion), 2) AS promedio
+FROM motel m
+LEFT JOIN habitacion h ON h.id_motel = m.id_motel
+LEFT JOIN reserva r ON r.id_habitacion = h.id_habitacion
+LEFT JOIN resena rs ON rs.id_reserva = r.id_reserva
+GROUP BY m.id_motel, m.nombre;
+
+Tasa de cancelación por motel — SUM de condiciones
+SELECT m.nombre AS motel, COUNT(*) AS reservas, SUM(r.estado = 'CANCELADA') AS canceladas,
+       ROUND(100 * SUM(r.estado = 'CANCELADA') / COUNT(*), 1) AS tasa_cancelacion
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel
+GROUP BY m.id_motel, m.nombre;
+
+Reembolso que correspondería a cada reserva cancelada según la política del motel — JOIN con política
+SELECT r.codigo_reserva, m.nombre AS motel, r.total, p.porcentaje_reembolso,
+       ROUND(r.total * p.porcentaje_reembolso / 100, 2) AS reembolso_teorico, r.monto_reembolso AS reembolso_registrado
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel
+JOIN politica_reserva p ON p.id_motel = m.id_motel
+WHERE r.estado = 'CANCELADA';
+
+Recargo por personas adicionales de cada reserva — GREATEST con la política del motel
+SELECT r.codigo_reserva, r.cantidad_personas, p.capacidad_max_sin_recargo,
+       GREATEST(r.cantidad_personas - p.capacidad_max_sin_recargo, 0) * p.tarifa_persona_adicional AS recargo
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN politica_reserva p ON p.id_motel = h.id_motel;
+
+Reservas hechas con menos anticipación de la que exige el motel — Comparación de fechas con la política
+SELECT r.codigo_reserva, TIMESTAMPDIFF(HOUR, r.fecha_creacion, r.fecha_hora_inicio) AS horas_anticipacion,
+       p.anticipacion_minima_horas
+FROM reserva r
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN politica_reserva p ON p.id_motel = h.id_motel
+WHERE TIMESTAMPDIFF(HOUR, r.fecha_creacion, r.fecha_hora_inicio) < p.anticipacion_minima_horas;
+
+Reservas de los próximos siete días — Rango de fechas con la vista
+SELECT * FROM v_reserva_detalle
+WHERE fecha_hora_inicio BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY);
+
+Ingresos por servicios adicionales de cada motel — JOIN y SUM
+SELECT m.nombre AS motel, s.nombre AS servicio, SUM(rs.cantidad) AS unidades,
+       SUM(rs.cantidad * rs.precio_unitario) AS vendido
+FROM reserva_servicio rs
+JOIN servicio_adicional s ON s.id_servicio = rs.id_servicio
+JOIN motel m ON m.id_motel = s.id_motel
+GROUP BY m.id_motel, m.nombre, s.id_servicio, s.nombre
+ORDER BY vendido DESC;
+
+Ticket promedio por modalidad de alquiler — AVG con JOIN
+SELECT mo.nombre AS modalidad, COUNT(*) AS reservas, ROUND(AVG(r.total), 2) AS ticket_promedio
+FROM reserva r
+JOIN tarifa ta ON ta.id_tarifa = r.id_tarifa
+JOIN modalidad mo ON mo.id_modalidad = ta.id_modalidad
+GROUP BY mo.id_modalidad, mo.nombre;
+
+Propietarios con sus moteles, ingresos y estado de verificación — JOIN, LEFT JOIN y CASE
+SELECT CONCAT(u.nombre, ' ', u.apellido) AS propietario,
+       IF(p.fecha_verificacion IS NULL, 'Sin verificar', 'Verificado') AS perfil,
+       COUNT(DISTINCT m.id_motel) AS moteles
+FROM perfil_propietario p
+JOIN usuario u ON u.id_usuario = p.id_usuario
+LEFT JOIN motel m ON m.id_propietario = p.id_usuario
+GROUP BY p.id_usuario, u.nombre, u.apellido, p.fecha_verificacion;
+
+Las tres habitaciones más rentables — Agrupación con LIMIT
+SELECT m.nombre AS motel, h.numero AS habitacion, SUM(p.monto) AS ingresos
+FROM pago p
+JOIN reserva r ON r.id_reserva = p.id_reserva
+JOIN habitacion h ON h.id_habitacion = r.id_habitacion
+JOIN motel m ON m.id_motel = h.id_motel
+WHERE p.estado = 'APROBADO'
+GROUP BY h.id_habitacion, m.nombre, h.numero
+ORDER BY ingresos DESC LIMIT 3;
+
+Participación de cada método de pago en el total recaudado — SUM OVER
+SELECT metodo_pago, SUM(monto) AS total,
+       ROUND(100 * SUM(monto) / SUM(SUM(monto)) OVER (), 1) AS porcentaje
+FROM pago WHERE estado = 'APROBADO'
+GROUP BY metodo_pago;
+
+Clientes inactivos que tienen reservas registradas — Filtro cruzado entre tablas
+SELECT u.correo, COUNT(r.id_reserva) AS reservas
+FROM usuario u JOIN reserva r ON r.id_usuario = u.id_usuario
+WHERE u.estado = 'INACTIVO'
+GROUP BY u.id_usuario, u.correo;
+
+Resumen ejecutivo del sistema en una sola fila — Subconsultas escalares
+SELECT (SELECT COUNT(*) FROM usuario)    AS usuarios,
+       (SELECT COUNT(*) FROM motel)      AS moteles,
+       (SELECT COUNT(*) FROM habitacion) AS habitaciones,
+       (SELECT COUNT(*) FROM reserva)    AS reservas,
+       (SELECT COALESCE(SUM(monto), 0) FROM pago WHERE estado = 'APROBADO') AS ingresos_aprobados;
