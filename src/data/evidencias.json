@@ -1,0 +1,62 @@
+{
+  "categorias": [
+    {
+      "slug": "modelado",
+      "titulo": "Modelado",
+      "resumen": "Diagramas entidad-relación hechos en Draw.io.",
+      "intro": "Estos son los modelos entidad-relación que hemos desarrollado en clase. Cada uno tiene su diagrama, de qué trata el ejercicio y lo que aprendí al hacerlo.",
+      "items": [
+        {
+          "titulo": "University Champions",
+          "etiqueta": "Modelo entidad-relación, hecho en Draw.io",
+          "descripcion": "Diagrama entidad-relación del ejercicio University Champions.",
+          "imagen": "/images/modelado-university-champions.png",
+          "imagenAlt": "Diagrama entidad-relación de University Champions",
+          "enunciado": "",
+          "supuestos": [],
+          "objetivo": "",
+          "aprendizaje": ""
+        },
+        {
+          "titulo": "Plataforma de streaming",
+          "etiqueta": "Modelo entidad-relación, hecho en Draw.io",
+          "descripcion": "Diagrama entidad-relación del ejercicio de la plataforma de streaming.",
+          "imagen": "/images/modelado-plataforma-streaming.png",
+          "imagenAlt": "Diagrama entidad-relación de la plataforma de streaming",
+          "enunciado": "",
+          "supuestos": [],
+          "objetivo": "",
+          "aprendizaje": ""
+        }
+      ]
+    },
+    {
+      "slug": "normalizacion",
+      "titulo": "Normalización",
+      "resumen": "Talleres que llevan un esquema paso a paso hasta una forma normal.",
+      "intro": "Aquí irán los talleres de normalización, mostrando cómo cambia el esquema en cada forma normal.",
+      "items": []
+    },
+    {
+      "slug": "sql",
+      "titulo": "SQL",
+      "resumen": "Consultas SQL de los ejercicios del curso.",
+      "intro": "Aquí irán las consultas SQL que desarrolle en el curso, cada una con el problema que resuelve.",
+      "items": []
+    },
+    {
+      "slug": "investigacion",
+      "titulo": "Investigación",
+      "resumen": "Temas relacionados con lo visto en clase que investigué por mi cuenta.",
+      "intro": "Aquí irán los temas que investigue para ampliar lo visto en clase, con lo que encontré y por qué me pareció útil.",
+      "items": []
+    },
+    {
+      "slug": "proyecto",
+      "titulo": "Proyecto",
+      "resumen": "El proyecto final del curso y sus entregables.",
+      "intro": "Aquí estará el proyecto final del curso, con cada uno de sus entregables.",
+      "items": []
+    }
+  ]
+}
