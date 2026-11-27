@@ -1,0 +1,98 @@
+---
+import { categorias as cargarCategorias } from '../lib/evidencias';
+import { cargarSql } from '../lib/sqlParser';
+
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+const categorias = cargarCategorias();
+
+const sql = cargarSql();
+const totalSql = sql.clase.total + sql.proyecto.total;
+
+// SQL cuenta consultas (vienen de los textos); el resto cuenta evidencias del JSON.
+function contar(c: { slug: string; items: unknown[] }) {
+  const n = c.slug === 'sql' ? totalSql : c.items.length;
+  if (n === 0) return 'Próximamente';
+  const unidad = c.slug === 'sql' ? ['consulta', 'consultas'] : ['evidencia', 'evidencias'];
+  return `${n} ${n === 1 ? unidad[0] : unidad[1]}`;
+}
+---
+
+<section id="evidencias" class="evidence-section" style="scroll-margin-top: 80px;">
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl py-24">
+    <h2 class="section-title">Evidencias</h2>
+    <p class="section-subtitle">
+      Los trabajos de Bases de Datos 1, organizados por tema. Entra a cada uno para ver el detalle.
+    </p>
+
+    <div class="evidence-grid">
+      {
+        categorias.map((c) => (
+          <a href={`${root}/evidencias/${c.slug}`} class="evidence-card">
+            <h3>{c.titulo}</h3>
+            <p>{c.resumen}</p>
+            <span class="count">{contar(c)}</span>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .evidence-section {
+    background-color: var(--bg);
+  }
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  .section-subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    max-width: 40rem;
+    margin: 0 auto 2.5rem;
+  }
+  .evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+  }
+  .evidence-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    text-decoration: none;
+    transition: border-color 0.2s ease;
+  }
+  .evidence-card:hover,
+  .evidence-card:focus-visible {
+    border-color: var(--accent);
+  }
+  .evidence-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .evidence-card h3 {
+    color: var(--text);
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .evidence-card p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    flex: 1;
+  }
+  .count {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+</style>

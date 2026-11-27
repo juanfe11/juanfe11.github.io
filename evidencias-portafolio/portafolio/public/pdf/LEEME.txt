@@ -1,0 +1,5 @@
+Aquí van los PDF de los talleres. Los nombres deben ser exactamente estos:
+
+taller-reduccion-a-tablas.pdf
+normalizacion-del-taller.pdf
+taller-de-normalizacion.pdf
