@@ -1,0 +1,389 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { categorias } from '../../lib/evidencias';
+import { withBase } from '../../lib/assetPath';
+
+export function getStaticPaths() {
+  // SQL tiene su propia página (sql.astro), con un diseño distinto.
+  return categorias()
+    .filter((cat) => cat.slug !== 'sql')
+    .map((cat) => ({
+    params: { categoria: cat.slug },
+    props: { cat },
+  }));
+}
+
+const { cat } = Astro.props;
+// El bloque del PDF solo aparece si el archivo ya está subido a public/.
+const items = (cat.items as any[]).map((it) => ({
+  ...it,
+  hayPdf: Boolean(it.pdf) && existsSync(join(process.cwd(), 'public', String(it.pdf).replace(/^\//, ''))),
+}));
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<Layout title={`${cat.titulo} | Evidencias`} description={cat.resumen}>
+  <main id="main-content" class="ev-page">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-24">
+      <a href={`${root}/#evidencias`} class="back-link">← Volver a Evidencias</a>
+
+      <h1 class="text-3xl sm:text-4xl font-bold mt-8 mb-3 gradient-text">{cat.titulo}</h1>
+      <p class="lead">{cat.intro}</p>
+
+      {
+        items.length === 0 ? (
+          <p class="empty">
+            Todavía no hay evidencias en esta sección. Las iré agregando durante el semestre.
+          </p>
+        ) : (
+          items.map((item) => (
+            <article class="item">
+              <h2>{item.titulo}</h2>
+              {item.etiqueta && <p class="tag">{item.etiqueta}</p>}
+              {item.autoria && <p class="autoria">{item.autoria}</p>}
+              {item.descripcion && <p class="desc">{item.descripcion}</p>}
+
+              {item.hayPdf && (
+                <div class="pdf">
+                  <a
+                    class="boton"
+                    href={withBase(item.pdf)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver el PDF del taller
+                  </a>
+                  <details class="visor">
+                    <summary>Verlo aquí mismo</summary>
+                    <iframe
+                      src={withBase(item.pdf)}
+                      title={`PDF: ${item.titulo}`}
+                      loading="lazy"
+                    />
+                  </details>
+                </div>
+              )}
+
+              {item.imagen && (
+                <figure>
+                  <button
+                    type="button"
+                    class="zoom"
+                    data-src={withBase(item.imagen)}
+                    data-alt={item.imagenAlt ?? item.titulo}
+                    aria-label={`Ampliar ${item.titulo}`}
+                  >
+                    <img
+                      src={withBase(item.imagen)}
+                      alt={item.imagenAlt ?? item.titulo}
+                      loading="lazy"
+                    />
+                  </button>
+                  <figcaption>Haz clic en la imagen para verla en grande.</figcaption>
+                </figure>
+              )}
+
+              {item.enunciado && (
+                <div class="block">
+                  <h3>Enunciado</h3>
+                  <p>{item.enunciado}</p>
+                </div>
+              )}
+
+              {item.supuestos && item.supuestos.length > 0 && (
+                <div class="block">
+                  <h3>Supuestos</h3>
+                  <ul>
+                    {item.supuestos.map((s: string) => (
+                      <li>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {item.objetivo && (
+                <div class="block">
+                  <h3>Objetivo de aprendizaje</h3>
+                  <p>{item.objetivo}</p>
+                </div>
+              )}
+
+              {item.codigo && (
+                <div class="block">
+                  <h3>Consulta</h3>
+                  <div class="code-wrap">
+                    <button type="button" class="copy">
+                      Copiar código
+                    </button>
+                    <pre><code>{item.codigo}</code></pre>
+                  </div>
+                </div>
+              )}
+
+              {item.aprendizaje && (
+                <div class="block">
+                  <h3>Lo que aprendí</h3>
+                  <p>{item.aprendizaje}</p>
+                </div>
+              )}
+
+              {item.enlace && (
+                <a class="ext" href={item.enlace.url} target="_blank" rel="noopener noreferrer">
+                  {item.enlace.texto}
+                </a>
+              )}
+            </article>
+          ))
+        )
+      }
+    </div>
+  </main>
+
+  <dialog id="lightbox" aria-label="Imagen ampliada">
+    <img id="lightbox-img" alt="" />
+  </dialog>
+</Layout>
+
+<style>
+  .ev-page {
+    background-color: var(--bg);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+  .lead {
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 42rem;
+    margin-bottom: 2.5rem;
+  }
+  .empty {
+    color: var(--text-muted);
+    padding: 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+  }
+
+  .item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.75rem;
+    margin-bottom: 2rem;
+  }
+  .item h2 {
+    color: var(--text);
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+  .tag {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+  }
+  .autoria {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    margin-top: 0.15rem;
+  }
+  .desc {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-top: 0.75rem;
+  }
+
+  .pdf {
+    margin-top: 1.25rem;
+  }
+  .boton {
+    display: inline-block;
+    padding: 0.5rem 1.1rem;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: background 0.2s ease;
+  }
+  .boton:hover {
+    background: rgba(99, 102, 241, 0.12);
+  }
+  .boton:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .visor {
+    margin-top: 0.9rem;
+  }
+  .visor summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  .visor summary:hover {
+    color: var(--accent);
+  }
+  .visor iframe {
+    display: block;
+    width: 100%;
+    height: 640px;
+    margin-top: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+
+  figure {
+    margin: 1.5rem 0;
+  }
+  .zoom {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    cursor: zoom-in;
+  }
+  .zoom:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .zoom img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 520px;
+    object-fit: contain;
+  }
+  figcaption {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }
+
+  .block {
+    margin-top: 1.5rem;
+  }
+  .block h3 {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .block p,
+  .block li {
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  .block ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+  }
+
+  .code-wrap {
+    position: relative;
+  }
+  .code-wrap pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    padding-top: 2.75rem;
+    overflow-x: auto;
+  }
+  .code-wrap code {
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: var(--text);
+    white-space: pre;
+  }
+  .copy {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .ext {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .ext:hover {
+    text-decoration: underline;
+  }
+
+  dialog {
+    max-width: 95vw;
+    max-height: 95vh;
+    padding: 0.75rem;
+    background: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: zoom-out;
+  }
+  dialog::backdrop {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  dialog img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(95vh - 1.5rem);
+    background: #fff;
+  }
+</style>
+
+<script>
+  const dialog = document.getElementById('lightbox') as HTMLDialogElement | null;
+  const big = document.getElementById('lightbox-img') as HTMLImageElement | null;
+
+  document.querySelectorAll<HTMLButtonElement>('.zoom').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!dialog || !big) return;
+      big.src = btn.dataset.src ?? '';
+      big.alt = btn.dataset.alt ?? '';
+      dialog.showModal();
+    });
+  });
+  dialog?.addEventListener('click', () => dialog.close());
+
+  document.querySelectorAll<HTMLButtonElement>('.copy').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const code = btn.parentElement?.querySelector('code')?.textContent ?? '';
+      try {
+        await navigator.clipboard.writeText(code);
+        btn.textContent = 'Copiado';
+      } catch {
+        btn.textContent = 'No se pudo copiar';
+      }
+      setTimeout(() => {
+        btn.textContent = 'Copiar código';
+      }, 1800);
+    });
+  });
+</script>
