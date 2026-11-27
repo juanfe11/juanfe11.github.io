@@ -1,0 +1,40 @@
+[
+  {
+    "titulo": "Reducción a tablas: librería y zoológico",
+    "etiqueta": "Taller, 21 de noviembre de 2026",
+    "autoria": "Trabajo individual",
+    "descripcion": "Es el punto de partida de la normalización. Tomé los modelos entidad-relación de una librería y de un zoológico y los reduje a tablas con las reglas vistas en clase: cada entidad pasa a ser una tabla, las relaciones 1:N se resuelven con una clave foránea y las N:M con una tabla intermedia. La librería quedó en 11 tablas con 10 claves foráneas, y el zoológico en 12 tablas con 11 claves foráneas.",
+    "objetivo": "Leer los modelos entidad-relación de la librería y del zoológico y reducirlos a tablas aplicando las reglas de clase, indicando la clave primaria y las claves foráneas de cada tabla.",
+    "supuestos": [
+      "Toda especie está en una zona: el taller no indica la participación, así que la clave de ZONA pasa a ESPECIE.",
+      "El taller marca la relación «cesta de» como M:N. Si fuera 1:N, no habría tabla CESTA_DE y el correo del cliente pasaría como clave foránea a CESTA_COMPRA.",
+      "La participación total de libro no se garantiza con claves foráneas; queda como regla de negocio que verifica la aplicación."
+    ],
+    "aprendizaje": "La cardinalidad decide la reducción: las relaciones 1:N se resuelven con una clave foránea y las N:M necesitan una tabla intermedia. Los atributos de una relación N:M, como número, fecha u hora, van en la tabla intermedia. Y el orden de creación sale de las claves foráneas: primero las tablas sin dependencias y al final las intermedias.",
+    "pdf": "/pdf/taller-reduccion-a-tablas.pdf"
+  },
+  {
+    "titulo": "Normalización de la librería y el zoológico",
+    "etiqueta": "Taller, 21 de noviembre de 2026",
+    "autoria": "Trabajo individual",
+    "descripcion": "Con las 11 tablas de la librería y las 12 del zoológico que salieron de la reducción, revisé en orden 1FN, 2FN, 3FN, FNBC, 4FN y 5FN. Escribí las dependencias funcionales de cada tabla y expliqué qué se revisa en cada paso. Todas quedaron en 5FN sin cambios, siempre que se cumplan los supuestos que dejé escritos.",
+    "objetivo": "Comprobar paso a paso que las tablas de la reducción cumplen la quinta forma normal, y dejar claros los supuestos de los que depende esa conclusión.",
+    "supuestos": [
+      "Teléfonos, direcciones y URL guardan un solo valor por fila, lo que sostiene la 1FN.",
+      "En AUTOR la clave es (nombre, dirección), porque dos autores pueden llamarse igual.",
+      "Las asociaciones de una misma entidad son independientes entre sí, lo que sostiene la 4FN.",
+      "No hay reglas de negocio cíclicas, lo que sostiene la 5FN."
+    ],
+    "aprendizaje": "Una reducción bien hecha suele dejar tablas normalizadas, pero no lo garantiza: el resultado depende de las dependencias que se declaren y de los supuestos sobre los datos. Separar cada relación N:M en su propia tabla evita las violaciones de 4FN, y que todas las relaciones sean binarias evita los problemas de 5FN.",
+    "pdf": "/pdf/normalizacion-del-taller.pdf"
+  },
+  {
+    "titulo": "Taller de normalización: hospitalización, pedidos y empleado",
+    "etiqueta": "Taller, 21 de noviembre de 2026",
+    "autoria": "Trabajo en pareja con Felipe Andrés Zambrano Brochero",
+    "descripcion": "Este taller lo hice en pareja con mi compañero Felipe Andrés Zambrano Brochero. Partimos de tres esquemas con sus dependencias funcionales: hospitalización, pedidos y empleado. En cada uno identificamos en qué forma normal estaba, qué anomalías de inserción, actualización y eliminación producía, y lo llevamos paso a paso hasta la 5FN justificando cada descomposición. También comparamos 3FN con BCNF y estimamos el costo de normalizar.",
+    "objetivo": "Analizar tres esquemas de relación a partir de sus dependencias funcionales y llevarlos paso a paso hasta la quinta forma normal, justificando cada descomposición y las anomalías que evita.",
+    "aprendizaje": "Los esquemas de hospitalización y de pedidos estaban solo en 1FN, y sus dependencias parciales y transitivas se resolvieron en 2FN y 3FN. El caso empleado muestra para qué sirve la 4FN: una tabla puede estar en BCNF y aun así repetir datos si guarda dos listas independientes. Normalizar agrega reuniones a las consultas, pero el costo es de segundos al día frente a los datos contradictorios que se evitan.",
+    "pdf": "/pdf/taller-de-normalizacion.pdf"
+  }
+]

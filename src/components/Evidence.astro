@@ -1,9 +1,9 @@
 ---
-import data from '../data/evidencias.json';
+import { categorias as cargarCategorias } from '../lib/evidencias';
 import { cargarSql } from '../lib/sqlParser';
 
 const root = import.meta.env.BASE_URL.replace(/\/$/, '');
-const categorias = data.categorias;
+const categorias = cargarCategorias();
 
 const sql = cargarSql();
 const totalSql = sql.clase.total + sql.proyecto.total;
