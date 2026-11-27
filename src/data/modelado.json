@@ -1,0 +1,167 @@
+{
+  "resumen": "Seis ejercicios con su modelo entidad-relación, su modelo relacional y su modelo lógico en notación Barker.",
+  "intro": [
+    "Modelar es el primer paso para diseñar una base de datos: antes de crear una sola tabla hay que entender qué información maneja el problema, cómo se relaciona y qué reglas cumple. En Bases de Datos 1 lo hemos trabajado con casos reales que parten de un enunciado en texto. En esta sección están los seis ejercicios que llevamos hasta ahora, numerados en el orden en que los fuimos desarrollando.",
+    "Cada ejercicio se entrega en tres versiones del mismo modelo. Verlo de tres formas permite comprobar que el diseño es consistente de una a otra, y cada versión muestra algo distinto: la primera cuenta qué hay en el problema, la segunda cómo queda convertido en tablas y la tercera cómo se lee en una notación de uso profesional."
+  ],
+  "proceso": [
+    {
+      "titulo": "Modelo entidad-relación",
+      "formato": "Notación de Peter Chen, en imagen PNG",
+      "texto": "Es el diagrama conceptual. Muestra las entidades, sus atributos, las relaciones entre ellas y su cardinalidad, sin pensar todavía en tablas. Los rectángulos son entidades, los rombos son relaciones y los óvalos son atributos."
+    },
+    {
+      "titulo": "Modelo relacional",
+      "formato": "Hecho en Oracle SQL Developer, en PDF",
+      "texto": "Es el mismo modelo expresado como tablas, con sus claves primarias y foráneas. En los nombres de archivo se reconoce porque termina en R."
+    },
+    {
+      "titulo": "Modelo lógico en notación Barker",
+      "formato": "Hecho en Oracle SQL Developer, en PDF",
+      "texto": "Es la versión en notación Barker, que se obtiene con la ingeniería a modelo lógico de la misma herramienta. En los nombres de archivo termina en L."
+    }
+  ],
+  "ejercicios": [
+    {
+      "id": "torneo",
+      "titulo": "Torneo de fútbol universitario",
+      "resumen": "Programas, equipos, jugadores, partidos y tarjetas de un torneo.",
+      "introduccion": "La universidad organiza un torneo de fútbol entre sus programas académicos y necesita una base de datos para administrarlo. El ejercicio pide modelar los programas con los equipos que inscriben, los jugadores que integran cada equipo, los partidos en que se enfrentan y las tarjetas que se sacan durante ellos.",
+      "retos": [
+        "Una relación muchos a muchos entre equipos y partidos, con atributos propios: los goles anotados y el rol del equipo en cada participación.",
+        "Relaciones uno a muchos encadenadas: un programa inscribe equipos y cada jugador integra un equipo.",
+        "Las tarjetas dependen de dos cosas a la vez: el jugador que la recibe y el partido en que se saca, y cada una guarda su tipo, su minuto y su motivo."
+      ],
+      "enunciado": "La universidad organiza un torneo de fútbol entre sus programas académicos y necesita una base de datos para administrarlo. De cada programa se conoce su código, su nombre y su facultad. Cada programa inscribe equipos, de los que se guarda el código, el nombre, los colores del uniforme y el estado. Los jugadores se registran con su documento, nombre, apellido, semestre, jornada y fecha de nacimiento, y cada uno integra un equipo. Los equipos se enfrentan en partidos que tienen cancha, jornada, fecha, hora y estado, y de cada participación se registran los goles anotados y el rol del equipo. En los partidos se sacan tarjetas a los jugadores y de cada una se guarda el tipo, el minuto y el motivo.",
+      "chen": [ { "archivo": "torneo.png" } ],
+      "relacional": "torneoR.pdf",
+      "barker": "torneoL.pdf"
+    },
+    {
+      "id": "stream",
+      "titulo": "Plataforma de streaming",
+      "resumen": "Usuarios, contenidos, categorías y productores, y lo que cada usuario ve y busca.",
+      "introduccion": "Una plataforma de streaming necesita guardar la información de sus usuarios y de lo que ven. El ejercicio pide modelar a los usuarios con sus métodos de pago y sus búsquedas, los contenidos con sus categorías y su productor, y el registro de lo que cada usuario ve, incluyendo qué categorías prefiere.",
+      "retos": [
+        "Un atributo con varios valores: un usuario puede tener varios métodos de pago.",
+        "Las visualizaciones relacionan a un usuario con un contenido y guardan la fecha y el tiempo visto, y las búsquedas guardan el texto y la fecha.",
+        "Un contenido pertenece a una o varias categorías (muchos a muchos) y lo produce un solo productor (uno a muchos).",
+        "Saber cuántas veces ha visto un usuario contenido de cada categoría es un dato que se puede obtener de las visualizaciones, y obliga a decidir si se guarda o se calcula."
+      ],
+      "enunciado": "Una plataforma de streaming necesita guardar la información de sus usuarios y de lo que ven. De cada usuario se conoce su documento, nombre, correo y sus métodos de pago. Los usuarios hacen búsquedas, de las que se guarda el texto y la fecha, y cada vez que ven algo se registra la fecha y el tiempo visto. Cada contenido tiene código IMDb, título, tipo, duración y año de lanzamiento, pertenece a una o varias categorías y lo produce un productor, del que se conoce su documento, nombre y país de origen. La plataforma también quiere saber qué categorías prefiere cada usuario y cuántas veces ha visto contenido de cada una.",
+      "chen": [ { "archivo": "stream.png" } ],
+      "relacional": "streamR.pdf",
+      "barker": "streamL.pdf"
+    },
+    {
+      "id": "zoologico",
+      "titulo": "Zoológico",
+      "resumen": "Animales, zonas, personal y recorridos para visitantes.",
+      "introduccion": "Un zoológico necesita una base de datos para administrar sus animales, su personal y los recorridos para visitantes. El ejercicio pide modelar los hábitats y los continentes, las especies y la zona donde está cada una, los cuidadores, los guías y los itinerarios. Cinco de sus seis relaciones son muchos a muchos, y por eso es uno de los dos ejercicios que tienen dos versiones del modelo de Chen.",
+      "retos": [
+        "Cinco relaciones muchos a muchos: hábitats con continentes, especies con hábitats, zonas con itinerarios, y los cuidadores y los guías con lo que atienden y llevan.",
+        "Dos de esas relaciones llevan un atributo propio: la fecha de cada atención de un cuidador y la hora de cada itinerario que lleva un guía.",
+        "Una relación de muchos a uno entre especie y zona, porque cada especie está ubicada en una sola zona."
+      ],
+      "enunciado": "Un zoológico necesita una base de datos para administrar sus animales, su personal y los recorridos para visitantes. Los continentes se identifican por su nombre. Los hábitats se describen con su nombre, clima y vegetación, y cada hábitat puede ocupar varios continentes, así como un continente puede tener varios hábitats. De cada especie se conoce el nombre científico, el nombre común y una descripción; una especie puede vivir en varios hábitats, y en cada hábitat viven varias especies. El zoológico se divide en zonas, de las que se guarda el nombre y la extensión, y cada especie está ubicada en una zona. Los cuidadores se registran con su nombre, fecha, dirección y teléfono, y cada cuidador atiende varias especies, de modo que de cada atención se registra la fecha. Los guías se registran con su nombre, dirección, teléfono y fecha. Los itinerarios para los visitantes tienen un identificador, una duración, una longitud y un número de visitantes, y cada itinerario recorre varias zonas, que a su vez pueden hacer parte de varios itinerarios. Cada guía lleva varios itinerarios y de cada uno se registra la hora, y un itinerario puede ser llevado por varios guías.",
+      "chen": [
+        {
+          "archivo": "Zoológico-MER.png",
+          "titulo": "Modelo de partida (MER)",
+          "descripcion": "Las relaciones muchos a muchos (N:M) aparecen como un solo rombo entre dos entidades, y los atributos de la relación cuelgan del rombo.",
+          "puntos": [
+            "ESPECIE y HABITAT: VIVE EN (N:M).",
+            "HABITAT y CONTINENTE: ESTÁ EN (N:M).",
+            "ZONA e ITINERARIO: RECORRE (N:M).",
+            "ITINERARIO y GUÍA: LLEVA (N:M), con el atributo hora.",
+            "ESPECIE y CUIDADOR: CUIDA (N:M), con el atributo fecha.",
+            "ESPECIE y ZONA: ESTÁ EN (N:1)."
+          ]
+        },
+        {
+          "archivo": "Zoológico-transformado.png",
+          "titulo": "Modelo transformado",
+          "descripcion": "Es el mismo modelo después de aplicar la regla del curso de que toda N:M se convierte en entidad. Corresponde a las 12 tablas del taller de reducción.",
+          "puntos": [
+            "Cada N:M pasa a ser una entidad débil (rectángulo doble): VIVE_EN, HABITAT_CONTINENTE, RECORRE, LLEVA y CUIDA.",
+            "Cada una de esas entidades débiles queda unida a sus dos entidades originales mediante dos relaciones identificadoras (rombo doble), de tipo 1:N.",
+            "Su clave es la unión de las claves de las dos entidades que une. La hora y la fecha pasan a ser atributos de LLEVA y de CUIDA.",
+            "Solo sobrevive como relación normal ESTÁ EN entre ESPECIE y ZONA (1:N), porque ya no es N:M. Su clave viaja como llave foránea nombre_zona en ESPECIE."
+          ]
+        }
+      ],
+      "nota": {
+        "titulo": "Por qué hay dos diagramas",
+        "texto": "En el MER las relaciones N:M son rombos. En el modelo transformado son entidades débiles y solo quedan relaciones 1:N. Por eso el transformado tiene más figuras, pero se convierte directamente en tablas."
+      },
+      "relacional": "zoologicoR.pdf",
+      "barker": "zoologicoL.pdf"
+    },
+    {
+      "id": "operario",
+      "titulo": "Puerto marítimo",
+      "resumen": "Buques, recaladas, operarios, importadores y abastecimiento de un puerto.",
+      "introduccion": "Un puerto marítimo necesita una base de datos para administrar la llegada de buques y las operaciones de carga y descarga. Es el enunciado más extenso de los seis: hay que modelar al personal (operarios, que pueden ser estibadores o grueros), los servicios marítimos y sus recaladas, los buques con su certificado, los importadores con sus embarques y bodegas, las cuadrillas de cada recalada y los contratistas que la abastecen.",
+      "retos": [
+        "Una relación recursiva con atributo: un operario puede supervisar a otros en un periodo determinado.",
+        "Una especialización: cada operario es estibador o gruero, y cada tipo guarda atributos propios (examen médico vigente y equipos que maneja, u horas de operación y tipo de certificación).",
+        "Una entidad débil: las recaladas se distinguen por su fecha de arribo dentro de cada servicio marítimo.",
+        "Otra relación recursiva: una recalada puede transbordar a otras recaladas.",
+        "Un atributo con varios valores: un importador puede tener uno o varios correos.",
+        "Relaciones que involucran varias entidades a la vez y llevan atributos propios: las cuadrillas (estibadores y grueros en cada recalada, con turno y horas trabajadas) y el abastecimiento (contratistas, recaladas y suministros, con la cantidad)."
+      ],
+      "enunciado": "Un puerto marítimo necesita una base de datos para administrar la llegada de buques y las operaciones de carga y descarga. El personal se registra como operarios, con un identificador, un nombre y una licencia, y un operario puede supervisar a otros en un periodo determinado. Cada operario es estibador o gruero. Del estibador se guarda si su examen médico está vigente y los equipos que maneja, y del gruero las horas de operación y el tipo de certificación. Los servicios marítimos tienen un código, un puerto de origen, un puesto de destino y un tránsito estimado. Cada servicio recibe recaladas, que se distinguen por su fecha de arribo y tienen además hora de arribo y estado. Los buques se identifican por su número IMO y tienen nombre, capacidad en TEU y año de construcción; cada buque atiende varias recaladas y tiene un certificado, del que se guarda el número, la fecha de expedición y la fecha de vencimiento. Una recalada puede transbordar a otras recaladas. Los importadores se registran con su documento, nombres, apellidos, fecha de registro y uno o varios correos. Cada importador realiza embarques en las recaladas, con tipo de carga, peso en toneladas y fecha de solicitud, y cada embarque se deposita en una bodega, de la que se conoce el código, la zona y la capacidad en metros cuadrados. En cada recalada se forman cuadrillas con estibadores y grueros, y de cada una se registran el turno y las horas trabajadas. Por último, los contratistas, con su NIT y razón social, abastecen a las recaladas con suministros, que tienen código, unidad de medida y descripción, y de cada abastecimiento se guarda la cantidad.",
+      "chen": [ { "archivo": "operario.png" } ],
+      "relacional": "operarioR.pdf",
+      "barker": "operarioL.pdf"
+    },
+    {
+      "id": "libreria",
+      "titulo": "Librería en línea",
+      "resumen": "Catálogo, almacenes, clientes y cestas de compra.",
+      "introduccion": "Una librería en línea necesita una base de datos para administrar su catálogo, sus almacenes y las compras de sus clientes. El ejercicio pide modelar autores, editores y libros, los almacenes con las existencias de cada libro, y a los clientes con las cestas de compra que arman. Es el otro ejercicio con dos versiones del modelo de Chen, y su modelo transformado corresponde a las 11 tablas del taller de reducción.",
+      "retos": [
+        "Tres relaciones muchos a muchos alrededor del libro: con sus autores (escrito por), con sus editores (editado por) y con los almacenes que lo guardan, donde se registra el número de ejemplares disponibles.",
+        "Una relación muchos a muchos con atributo entre la cesta y el libro, con el número de ejemplares que el cliente desea comprar.",
+        "Un autor identificado por dos atributos a la vez, nombre y dirección: una clave compuesta.",
+        "La relación entre cliente y cesta quedó como N:M en el taller, aunque en la práctica una cesta es de un solo cliente."
+      ],
+      "enunciado": "Una librería en línea necesita una base de datos para administrar su catálogo, sus almacenes y las compras de sus clientes. De cada autor se conoce su nombre, su dirección y su página web, y de cada editor su nombre, dirección, teléfono y página web. Los libros se identifican por su ISBN y tienen título, año de publicación y precio; cada libro puede ser escrito por varios autores y un autor puede firmar varios libros, y un libro puede ser editado por varios editores. Los almacenes tienen un código, una dirección y un teléfono, y cada almacén guarda varios libros, de modo que de cada libro almacenado se registra el número de ejemplares disponibles. Los clientes se registran con su correo electrónico, nombre, dirección y teléfono, y cada cliente arma cestas de compra, que se identifican con un código. En cada cesta se incluyen varios libros, y de cada uno se guarda el número de ejemplares que el cliente desea comprar.",
+      "chen": [
+        {
+          "archivo": "Librería-MER.png",
+          "titulo": "Modelo de partida (MER)",
+          "descripcion": "Las cinco relaciones muchos a muchos aparecen como un solo rombo entre dos entidades: ESCRITO POR (autor y libro), EDITADO POR (editor y libro), CONTIENE (libro y cesta de la compra), CESTA DE (cliente y cesta de la compra) y ALMACENA (libro y almacén). Los atributos de CONTIENE y de ALMACENA, el número de ejemplares, cuelgan de su rombo."
+        },
+        {
+          "archivo": "Librería-transformado.png",
+          "titulo": "Modelo transformado",
+          "descripcion": "Es el mismo modelo después de aplicar la regla del curso de que toda N:M se convierte en entidad: cada una de las cinco relaciones pasa a ser una entidad débil, unida a sus dos entidades originales con relaciones identificadoras de tipo 1:N, y su clave es la unión de las claves que une. El número de ejemplares queda como atributo de CONTIENE y de ALMACENA."
+        }
+      ],
+      "nota": {
+        "titulo": "La misma regla del zoológico",
+        "texto": "Es el mismo cambio que en el zoológico: en el MER las N:M son rombos y en el transformado son entidades débiles. El resultado son 6 tablas de entidades y 5 de relaciones, 11 en total."
+      },
+      "relacional": "libreriaR.pdf",
+      "barker": "libreriaL.pdf"
+    },
+    {
+      "id": "cine",
+      "titulo": "Cadena de cines",
+      "resumen": "Sedes, salas, proyecciones, boletos, clientes y empleados.",
+      "introduccion": "Una cadena de cines con varias sedes quiere organizar su información. El ejercicio pide modelar las sedes con sus salas, las películas que se proyectan, los boletos que compran los clientes y los empleados que trabajan en cada sede.",
+      "retos": [
+        "Atributos con varios valores: los teléfonos de la sede y los géneros de la película.",
+        "Una entidad débil: las salas se numeran dentro de cada sede, así que una sala no se identifica sola.",
+        "Dos especializaciones: los clientes pueden ser socios (con número de tarjeta y puntos) o estudiantes (con su institución), y los empleados pueden ser taquilleros o proyeccionistas.",
+        "Una relación recursiva: algunos empleados supervisan a otros.",
+        "Las proyecciones, que unen una sala y una película en una fecha y hora, y generan los boletos con su silla y su precio."
+      ],
+      "enunciado": "Una cadena de cines con varias sedes quiere organizar su información. Cada sede tiene nombre, dirección y teléfonos, y cuenta con varias salas numeradas dentro de ella. En las salas se proyectan películas en una fecha y hora, y de cada película se guarda el código, el título, la duración y sus géneros. Cada proyección genera boletos con silla y precio, que compran los clientes. Algunos clientes son socios, con número de tarjeta y puntos, y otros son estudiantes, con su institución. Los empleados trabajan en una sede, algunos supervisan a otros, y entre ellos hay taquilleros y proyeccionistas. Cada proyeccionista opera una sala.",
+      "chen": [ { "archivo": "cine.png" } ],
+      "relacional": "cineR.pdf",
+      "barker": "cineL.pdf"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 import { categorias as cargarCategorias } from '../lib/evidencias';
 import { cargarSql } from '../lib/sqlParser';
 import proyecto from '../data/proyecto.json';
+import modelado from '../data/modelado.json';
 
 const root = import.meta.env.BASE_URL.replace(/\/$/, '');
 const categorias = cargarCategorias();
@@ -11,11 +12,13 @@ const totalSql = sql.clase.total + sql.proyecto.total;
 
 const totalDocs = proyecto.etapas.reduce((n, e) => n + e.documentos.length, 0);
 
-// SQL cuenta consultas, Proyecto cuenta documentos y el resto cuenta evidencias.
+// Las categorías con página propia cuentan lo suyo: consultas, documentos o ejercicios.
+// Modelado también aporta el texto de su tarjeta.
 function contar(c: { slug: string; items: unknown[] }) {
   const cuenta: Record<string, [number, string, string]> = {
     sql: [totalSql, 'consulta', 'consultas'],
     proyecto: [totalDocs, 'documento', 'documentos'],
+    modelado: [modelado.ejercicios.length, 'ejercicio', 'ejercicios'],
   };
   const [n, uno, varios] = cuenta[c.slug] ?? [c.items.length, 'evidencia', 'evidencias'];
   if (n === 0) return 'Próximamente';
@@ -35,7 +38,7 @@ function contar(c: { slug: string; items: unknown[] }) {
         categorias.map((c) => (
           <a href={`${root}/evidencias/${c.slug}`} class="evidence-card">
             <h3>{c.titulo}</h3>
-            <p>{c.resumen}</p>
+            <p>{c.slug === 'modelado' ? modelado.resumen : c.resumen}</p>
             <span class="count">{contar(c)}</span>
           </a>
         ))

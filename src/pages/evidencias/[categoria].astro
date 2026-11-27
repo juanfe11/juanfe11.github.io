@@ -6,9 +6,9 @@ import { categorias } from '../../lib/evidencias';
 import { withBase } from '../../lib/assetPath';
 
 export function getStaticPaths() {
-  // SQL y Proyecto tienen su propia página (sql.astro y proyecto.astro), con un diseño distinto.
+  // SQL, Proyecto y Modelado tienen su propia página, con un diseño distinto.
   return categorias()
-    .filter((cat) => !['sql', 'proyecto'].includes(cat.slug))
+    .filter((cat) => !['sql', 'proyecto', 'modelado'].includes(cat.slug))
     .map((cat) => ({
     params: { categoria: cat.slug },
     props: { cat },

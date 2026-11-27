@@ -1,0 +1,616 @@
+---
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import Layout from '../../layouts/Layout.astro';
+import datos from '../../data/modelado.json';
+import { withBase } from '../../lib/assetPath';
+
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// Busca cada archivo en public/modelado sin distinguir mayúsculas, tildes ni separadores,
+// y usa el nombre real que tenga en el repositorio.
+const carpeta = join(process.cwd(), 'public', 'modelado');
+const clave = (n: string) =>
+  n
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, '');
+const presentes = new Map<string, string>();
+if (existsSync(carpeta)) for (const f of readdirSync(carpeta)) presentes.set(clave(f), f);
+const url = (nombre?: string) => {
+  const real = nombre ? presentes.get(clave(nombre)) : undefined;
+  return real ? withBase(`/modelado/${encodeURIComponent(real)}`) : null;
+};
+
+const ejercicios = (datos.ejercicios as any[]).map((e) => ({
+  ...e,
+  chen: (e.chen as any[]).map((c) => ({ ...c, src: url(c.archivo) })),
+  relacionalUrl: url(e.relacional),
+  barkerUrl: url(e.barker),
+  diagramas: e.chen.length + 2,
+}));
+
+const totalChen = ejercicios.reduce((n, e) => n + e.chen.length, 0);
+const totalPdf = ejercicios.length * 2;
+---
+
+<Layout
+  title="Modelado | Evidencias"
+  description="Ejercicios de modelado de Bases de Datos 1: modelo entidad-relación, modelo relacional y modelo lógico en notación Barker."
+>
+  <main id="main-content" class="ev-page">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-24">
+      <a href={`${root}/#evidencias`} class="back-link">← Volver a Evidencias</a>
+
+      <h1 class="text-3xl sm:text-4xl font-bold mt-8 mb-3 gradient-text">Modelado</h1>
+      {(datos.intro as string[]).map((p) => <p class="lead">{p}</p>)}
+
+      <dl class="stats">
+        <div>
+          <dt>Ejercicios</dt>
+          <dd>{ejercicios.length}</dd>
+        </div>
+        <div>
+          <dt>Diagramas de Peter Chen</dt>
+          <dd>{totalChen}</dd>
+        </div>
+        <div>
+          <dt>Modelos hechos en Oracle SQL Developer</dt>
+          <dd>{totalPdf}</dd>
+        </div>
+      </dl>
+
+      <h2 class="sub">Las tres versiones de cada ejercicio</h2>
+      <ol class="proceso">
+        {
+          (datos.proceso as any[]).map((p, i) => (
+            <li>
+              <span class="proceso-n">{i + 1}</span>
+              <div>
+                <strong>{p.titulo}</strong>
+                <span class="proceso-formato">{p.formato}</span>
+                <p>{p.texto}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+
+      <h2 class="sub sub-ruta">Los ejercicios</h2>
+      <ol class="ruta">
+        {
+          ejercicios.map((e, i) => (
+            <li class="paso" id={e.id}>
+              <details open={i === 0}>
+                <summary>
+                  <span class="num">{i + 1}</span>
+                  <span class="paso-info">
+                    <span class="paso-nombre">{e.titulo}</span>
+                    <span class="paso-resumen">{e.resumen}</span>
+                  </span>
+                  <span class="paso-count">{e.diagramas} diagramas</span>
+                </summary>
+
+                <div class="paso-cuerpo">
+                  <p class="resumen">{e.introduccion}</p>
+
+                  <p class="bloque-titulo">Lo que pone a prueba</p>
+                  <ul class="puntos">
+                    {e.retos.map((r: string) => (
+                      <li>{r}</li>
+                    ))}
+                  </ul>
+
+                  <details class="enunciado">
+                    <summary>Ver el enunciado completo</summary>
+                    <p>{e.enunciado}</p>
+                  </details>
+
+                  <h3 class="version-titulo">1. Modelo entidad-relación (Peter Chen)</h3>
+                  {e.chen.map((c: any) => (
+                    <figure class="chen">
+                      {c.titulo && <p class="chen-titulo">{c.titulo}</p>}
+                      {c.descripcion && <p class="chen-desc">{c.descripcion}</p>}
+                      {c.puntos && (
+                        <ul class="puntos">
+                          {c.puntos.map((p: string) => (
+                            <li>{p}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {c.src ? (
+                        <>
+                          <button
+                            type="button"
+                            class="zoom"
+                            data-src={c.src}
+                            data-alt={`${e.titulo}: ${c.titulo ?? 'modelo entidad-relación'}`}
+                            aria-label={`Ampliar el diagrama de ${e.titulo}`}
+                          >
+                            <img
+                              src={c.src}
+                              alt={`${e.titulo}: ${c.titulo ?? 'modelo entidad-relación'}`}
+                              loading="lazy"
+                            />
+                          </button>
+                          <figcaption>Haz clic en el diagrama para verlo en grande.</figcaption>
+                        </>
+                      ) : (
+                        <p class="pendiente">El diagrama estará disponible próximamente.</p>
+                      )}
+                    </figure>
+                  ))}
+
+                  {e.nota && (
+                    <div class="destacado">
+                      <strong>{e.nota.titulo}</strong>
+                      <p>{e.nota.texto}</p>
+                    </div>
+                  )}
+
+                  {[
+                    {
+                      n: 2,
+                      titulo: 'Modelo relacional',
+                      detalle: 'Hecho en Oracle SQL Developer.',
+                      href: e.relacionalUrl,
+                    },
+                    {
+                      n: 3,
+                      titulo: 'Modelo lógico en notación Barker',
+                      detalle: 'Obtenido con la ingeniería a modelo lógico de Oracle SQL Developer.',
+                      href: e.barkerUrl,
+                    },
+                  ].map((m) => (
+                    <div class="version">
+                      <h3 class="version-titulo">
+                        {m.n}. {m.titulo}
+                      </h3>
+                      <p class="detalle">{m.detalle}</p>
+                      {m.href ? (
+                        <div class="acciones">
+                          <a class="boton" href={m.href} target="_blank" rel="noopener noreferrer">
+                            Ver el PDF
+                          </a>
+                          <a class="boton secundario" href={m.href} download>
+                            Descargar
+                          </a>
+                          <details class="visor">
+                            <summary>Verlo aquí mismo</summary>
+                            <iframe
+                              src={m.href}
+                              title={`${m.titulo}: ${e.titulo}`}
+                              loading="lazy"
+                            />
+                          </details>
+                        </div>
+                      ) : (
+                        <p class="pendiente">El PDF estará disponible próximamente.</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </main>
+
+  <dialog id="lightbox" aria-label="Diagrama ampliado">
+    <img id="lightbox-img" alt="" />
+  </dialog>
+</Layout>
+
+<style>
+  .ev-page {
+    background-color: var(--bg);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+  .lead {
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 44rem;
+    margin-bottom: 1rem;
+  }
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2.5rem;
+    margin: 2rem 0 2.5rem;
+  }
+  .stats div {
+    max-width: 11rem;
+  }
+  .stats dt {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .stats dd {
+    color: var(--text);
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .sub {
+    color: var(--text);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.9rem;
+  }
+  .sub-ruta {
+    margin-top: 3rem;
+  }
+
+  .proceso {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .proceso li {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+  }
+  .proceso-n {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+  .proceso strong {
+    color: var(--text);
+  }
+  .proceso-formato {
+    display: block;
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.1rem;
+  }
+  .proceso p {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+    margin-top: 0.4rem;
+  }
+
+  .ruta {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+  }
+  .paso {
+    position: relative;
+    padding-left: 3.25rem;
+    padding-bottom: 0.75rem;
+    scroll-margin-top: 5rem;
+  }
+  .paso::before {
+    content: '';
+    position: absolute;
+    left: 1.1rem;
+    top: 2.6rem;
+    bottom: -0.1rem;
+    width: 2px;
+    background: var(--border);
+  }
+  .paso:last-child::before {
+    display: none;
+  }
+  .num {
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .paso > details > summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .paso > details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .paso > details > summary::after {
+    content: '+';
+    color: var(--text-dim);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .paso > details[open] > summary::after {
+    content: '−';
+  }
+  .paso > details > summary:hover {
+    border-color: var(--accent);
+  }
+  .paso > details > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .paso-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .paso-nombre {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .paso-resumen {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  .paso-count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .paso-cuerpo {
+    padding: 0.5rem 0.25rem 1rem;
+  }
+  .resumen {
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin: 0.75rem 0 1rem;
+  }
+  .bloque-titulo {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .puntos {
+    list-style: disc;
+    padding-left: 1.5rem;
+  }
+  .puntos li {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    margin-bottom: 0.3rem;
+  }
+  .enunciado {
+    margin-top: 1rem;
+  }
+  .enunciado summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .enunciado p {
+    color: var(--text-muted);
+    line-height: 1.8;
+    font-size: 0.92rem;
+    margin-top: 0.6rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--border);
+  }
+
+  .version-titulo {
+    color: var(--text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 1.75rem 0 0.4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  .detalle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .chen {
+    margin: 0.75rem 0 1rem;
+  }
+  .chen-titulo {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .chen-desc {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    margin: 0.3rem 0 0.5rem;
+  }
+  .zoom {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    cursor: zoom-in;
+  }
+  .zoom:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .zoom img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 520px;
+    object-fit: contain;
+  }
+  figcaption {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  .pendiente {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    padding: 0.9rem 1rem;
+    margin-top: 0.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.5rem;
+  }
+  .destacado {
+    padding: 1rem 1.25rem;
+    margin: 1rem 0 0;
+    border-left: 3px solid var(--accent);
+    background: var(--bg-card);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  .destacado strong {
+    color: var(--text);
+  }
+  .destacado p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    margin-top: 0.35rem;
+  }
+
+  .acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+  }
+  .boton {
+    display: inline-block;
+    padding: 0.5rem 1.1rem;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: background 0.2s ease;
+  }
+  .boton:hover {
+    background: rgba(99, 102, 241, 0.12);
+  }
+  .boton:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .boton.secundario {
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .boton.secundario:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .visor {
+    flex-basis: 100%;
+    margin-top: 0.4rem;
+  }
+  .visor summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  .visor summary:hover {
+    color: var(--accent);
+  }
+  .visor iframe {
+    display: block;
+    width: 100%;
+    height: 640px;
+    margin-top: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+
+  dialog {
+    max-width: 95vw;
+    max-height: 95vh;
+    padding: 0.75rem;
+    background: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: zoom-out;
+  }
+  dialog::backdrop {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  dialog img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(95vh - 1.5rem);
+    background: #fff;
+  }
+
+  @media (max-width: 640px) {
+    .paso {
+      padding-left: 2.75rem;
+    }
+    .paso > details > summary {
+      flex-wrap: wrap;
+      gap: 0.4rem 0.75rem;
+    }
+    .paso-count {
+      order: 3;
+    }
+    .visor iframe {
+      height: 480px;
+    }
+  }
+</style>
+
+<script>
+  const dialog = document.getElementById('lightbox') as HTMLDialogElement | null;
+  const big = document.getElementById('lightbox-img') as HTMLImageElement | null;
+
+  document.querySelectorAll<HTMLButtonElement>('.zoom').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!dialog || !big) return;
+      big.src = btn.dataset.src ?? '';
+      big.alt = btn.dataset.alt ?? '';
+      dialog.showModal();
+    });
+  });
+  dialog?.addEventListener('click', () => dialog.close());
+</script>

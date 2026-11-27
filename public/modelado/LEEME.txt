@@ -1,0 +1,11 @@
+Aquí van todos los diagramas de Modelado (20 archivos). Los nombres esperados son:
+
+torneo.png        torneoR.pdf     torneoL.pdf
+stream.png        streamR.pdf     streamL.pdf
+Zoológico-MER.png Zoológico-transformado.png   zoologicoR.pdf   zoologicoL.pdf
+operario.png      operarioR.pdf   operarioL.pdf
+Librería-MER.png  Librería-transformado.png    libreriaR.pdf    libreriaL.pdf
+cine.png          cineR.pdf       cineL.pdf
+
+R = modelo relacional (PDF).  L = modelo lógico en notación Barker (PDF).
+La página no distingue mayúsculas, tildes ni guiones, pero conviene respetar los nombres.
