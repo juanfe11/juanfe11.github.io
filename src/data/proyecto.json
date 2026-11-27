@@ -1,0 +1,245 @@
+{
+  "intro": [
+    "VesperaRoom es un sistema de gestión y reservas de moteles, el proyecto final de Bases de Datos 1 en la Universidad El Bosque. Lo desarrollé en equipo con Felipe Andrés Zambrano Brochero y Miguel Ángel López Jiménez. Partimos de un problema real: las reservas de moteles se hacen todavía en buena parte por llamada, por mensajes o en la recepción, y los propietarios llevan reservas, ocupación y pagos en cuadernos u hojas de cálculo sueltas, con el riesgo de reservas cruzadas sobre una misma habitación.",
+    "El proyecto no buscaba replicar los aplicativos que ya existen, sino diseñar una base de datos relacional sólida que soporte los dos lados del negocio: el cliente que consulta y reserva, y el propietario que administra sus moteles, habitaciones, tarifas y reservas. Al cierre quedó como una aplicación web con backend en Java 21 y Spring Boot, frontend en Angular y una base de datos MySQL 8 de 19 tablas en tercera forma normal, con acceso diferenciado para administrador, cliente y propietario."
+  ],
+  "datos": [
+    { "valor": "17", "etiqueta": "entidades en el modelo" },
+    { "valor": "19", "etiqueta": "tablas en 3FN" },
+    { "valor": "69", "etiqueta": "ejercicios de álgebra relacional" },
+    { "valor": "80", "etiqueta": "pruebas automáticas: 54 del backend y 26 del frontend" }
+  ],
+  "equipo": [
+    { "nombre": "Juan Felipe Lizarazo Prieto", "rol": "Gerente del proyecto y modelador de la base de datos", "yo": true },
+    { "nombre": "Felipe Andrés Zambrano Brochero", "rol": "Desarrollo del backend y documentación" },
+    { "nombre": "Miguel Ángel López Jiménez", "rol": "Desarrollo del frontend y modelador de la base de datos" }
+  ],
+  "tecnologias": [
+    "Base de datos: MySQL 8 (versión 8.0.46), con 19 tablas en 3FN.",
+    "Servidor: Oracle Linux 9.8 en una máquina virtual de VirtualBox.",
+    "Backend: Java 21 y Spring Boot, con acceso a datos por JDBC y SQL escrito a mano, sin ORM.",
+    "Frontend: Angular.",
+    "Seguridad: autenticación con JWT y permisos por rol.",
+    "Código y documentación: Git y GitHub."
+  ],
+  "etapas": [
+    {
+      "nombre": "Planeación",
+      "cronologia": "Propuesta y supuestos entregados el 2 de octubre de 2026",
+      "intro": "Antes de modelar nada, definimos qué íbamos a construir, hasta dónde llegaba y con qué reglas.",
+      "documentos": [
+        {
+          "titulo": "Propuesta de proyecto final",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/01-propuesta-proyecto.pdf",
+          "descripcion": "Es el documento con el que arrancó el proyecto. Describe la problemática, justifica por qué este dominio sirve para aplicar todo lo visto en el curso y fija el alcance: qué incluye, como el catálogo de moteles, la disponibilidad por fecha y hora, los pagos y el módulo del propietario, y qué queda por fuera, como el procesamiento real de pagos con pasarelas externas.",
+          "puntosTitulo": "Qué contiene",
+          "puntos": [
+            "Objetivo general: diseñar e implementar una base de datos relacional normalizada hasta 3FN, accesible desde una aplicación web de demostración.",
+            "20 requerimientos funcionales: 10 para el módulo del cliente y 10 para el del propietario.",
+            "7 reglas de negocio, entre ellas que no pueden existir dos reservas activas que se crucen en el tiempo sobre la misma habitación.",
+            "Un modelo de partida de 12 entidades principales, con relaciones 1:1, 1:N y N:M, una relación recursiva y una entidad débil.",
+            "6 consultas representativas, como las habitaciones disponibles en un rango de fecha y hora o los ingresos por motel y por mes.",
+            "Un plan de trabajo de 14 semanas y el reparto de responsabilidades del equipo."
+          ]
+        },
+        {
+          "titulo": "Acta de proyecto",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/02-acta-proyecto.pdf",
+          "descripcion": "Es el acta de constitución, el documento que formaliza qué se va a entregar y bajo qué condiciones. Define los entregables de la Fase 1 (modelado y normalización), de la Fase 2 (infraestructura y aplicativo) y de la gestión del proyecto, y calcula el presupuesto. También deja identificados los riesgos; el que más pesó fue que la Fase 2 duraba solo tres días, y por eso adelantamos el aplicativo y los scripts antes del 30 de octubre.",
+          "puntosTitulo": "Qué fija",
+          "puntos": [
+            "Los entregables de la Fase 1, la Fase 2 y la gestión del proyecto.",
+            "El presupuesto, que después se ejecutó sin desviaciones.",
+            "El riesgo de que la Fase 2 durara solo tres días."
+          ]
+        },
+        {
+          "titulo": "Supuestos del sistema",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/03-supuestos.pdf",
+          "descripcion": "Es donde dejamos escritas, una por una, las reglas del sistema para que nadie las interpretara a su manera. Reúne 33 supuestos organizados por tema (usuarios y propietarios, ubicación, moteles y habitaciones, políticas de reserva, reservas y pagos, y reseñas), seguidos de la lista de entidades con sus atributos y de las 21 relaciones con su cardinalidad.",
+          "puntosTitulo": "Algunas decisiones que quedaron escritas",
+          "puntos": [
+            "La disponibilidad no se guarda: se calcula. Una habitación está disponible si está activa, su motel está activo y no tiene reservas pendientes, confirmadas o en curso que se crucen con el horario pedido.",
+            "La reserva guarda la hora de salida y el total como valores históricos, que no cambian si después cambian los precios.",
+            "Una reserva pasa por los estados pendiente, confirmada, en curso y finalizada, y puede terminar en no-show o cancelarse. Casi todos los cambios de estado son automáticos.",
+            "Si un motel no tiene política de reserva, no puede recibir reservas. No se asume ningún valor por defecto.",
+            "Quedan fuera del modelo los empleados, las promociones, los cupones, el inventario y el tarifario de daños, como extensiones futuras."
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Modelado de datos",
+      "cronologia": "Modelos ER el 6 de octubre, modelo relacional y normalización el 10 y diccionario de datos el 15 de octubre de 2026",
+      "intro": "Del dominio a las tablas: los modelos conceptuales, el modelo relacional normalizado y el diccionario que documenta todo.",
+      "destacado": {
+        "titulo": "El modelo creció de 12 a 17 entidades",
+        "texto": "La propuesta partía de 12 entidades principales. Durante el modelado y la normalización se sumaron cinco: DEPARTAMENTO y CIUDAD (antes eran texto dentro del motel), MODALIDAD (salió de la tarifa), POLITICA_RESERVA (reglas que antes eran texto libre) y RESPUESTA_PROPIETARIO (se separó de las reseñas). Con las dos tablas intermedias de las relaciones N:M, el resultado final son 19 tablas."
+      },
+      "documentos": [
+        {
+          "titulo": "Modelo entidad relación (MER)",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/04-mer.pdf",
+          "descripcion": "Es el modelo conceptual del sistema, en notación Chen y en su versión extendida. Tiene 17 entidades y cubre los tres tipos de relación que pedía el proyecto.",
+          "puntosTitulo": "Qué muestra",
+          "puntos": [
+            "17 entidades, cuando el mínimo pedido era 8.",
+            "Relaciones 1:1: usuario con perfil de propietario, motel con política de reserva y reserva con reseña.",
+            "Relaciones N:M: tipo de habitación con característica, y reserva con servicio adicional, que lleva cantidad y precio unitario como atributos propios."
+          ]
+        },
+        {
+          "titulo": "Modelo entidad relación en notación Barker",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/05-modelo-er-barker.pdf",
+          "descripcion": "Es el mismo dominio dibujado en notación Barker, también llamada Crow's Foot, que usan muchas herramientas profesionales. Sirve para comprobar que los modelos son consistentes entre sí. Dejó una lección: este modelo quedó desactualizado frente al modelo final, y aprendimos a revisar los documentos de diseño cada vez que cambia el modelo y no solo al final."
+        },
+        {
+          "titulo": "Modelo relacional",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/06-modelo-relacional.pdf",
+          "descripcion": "Es el resultado de pasar el modelo a tablas y normalizarlo: 19 tablas en tercera forma normal, de las cuales 18 también cumplen BCNF. La excepción es HABITACION, que conserva a propósito la columna id_motel: una llave foránea compuesta con su tipo garantiza que ambos sean del mismo motel, y por eso queda en 3FN y no en BCNF.",
+          "puntosTitulo": "Ajustes que se hicieron al normalizar",
+          "puntos": [
+            "Ciudad y departamento pasaron de ser texto dentro del motel a tablas propias.",
+            "El nombre de la modalidad y su duración pasaron de la tarifa a la tabla MODALIDAD.",
+            "El nombre del servicio se quitó del detalle de la reserva, porque dependía solo del servicio.",
+            "«Acepta reembolso» se eliminó por ser derivable del porcentaje de reembolso."
+          ]
+        },
+        {
+          "titulo": "Diccionario de datos",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/08-diccionario-datos.pdf",
+          "descripcion": "Documenta cada una de las 19 tablas con todas sus columnas, llaves y restricciones (PK, FK, UNIQUE y CHECK). Es la referencia para saber qué guarda cada columna y qué reglas valida la base de datos por sí sola, sin tener que abrir los scripts."
+        },
+        {
+          "titulo": "Ejercicios de álgebra relacional",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/09-algebra-relacional.pdf",
+          "descripcion": "69 ejercicios de álgebra relacional con selección, proyección y unión natural, que se pasan a SQL en el script de consultas del proyecto. Escribir todo el SQL a mano, al usar JDBC sin ORM, facilitó expresar cada consulta en álgebra relacional."
+        }
+      ]
+    },
+    {
+      "nombre": "Infraestructura",
+      "cronologia": "Máquina virtual el 16 de octubre, gestor de base de datos el 21 y scripts SQL con README el 22 de octubre de 2026",
+      "intro": "Dónde y cómo corre la base de datos. Antes de instalar, comparamos alternativas y dejamos justificada cada decisión.",
+      "documentos": [
+        {
+          "titulo": "Análisis de selección de sistema operativo",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/10-seleccion-sistema-operativo.pdf",
+          "descripcion": "Justifica con una matriz de criterios por qué la máquina virtual usa Oracle Linux. El enunciado exigía una distribución Linux o Unix, así que se compararon tres alternativas y se eligió la que mejor se ajustaba al proyecto.",
+          "puntosTitulo": "Cómo se decidió",
+          "puntos": [
+            "Alternativas: Oracle Linux 9, Ubuntu Server 24.04 LTS y Rocky Linux 9.",
+            "Seis criterios con peso: cumplimiento del enunciado (25 %), estabilidad y soporte (20 %), seguridad por defecto, compatibilidad con MySQL 8 y facilidad de aprendizaje (15 % cada uno) y consumo de recursos (10 %).",
+            "Puntaje ponderado: Oracle Linux 4,60, Ubuntu Server 4,50 y Rocky Linux 4,15.",
+            "Ganó Oracle Linux 9.8 por su alineación con el enunciado, su estabilidad, su seguridad por defecto (SELinux y firewalld) y su soporte a largo plazo. Ubuntu Server habría ganado si la prioridad hubiera sido la facilidad de aprendizaje.",
+            "El principal inconveniente, la curva de aprendizaje de SELinux y firewalld, se mitigó siguiendo la documentación oficial y abriendo únicamente el puerto 3306."
+          ]
+        },
+        {
+          "titulo": "Análisis de selección de RDBMS",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/11-seleccion-rdbms.pdf",
+          "descripcion": "Es el análisis para elegir el sistema gestor de base de datos. El proyecto pedía un RDBMS distinto de SQL Server, instalado en una máquina virtual Linux o Unix, y el resultado fue MySQL 8."
+        },
+        {
+          "titulo": "Implementación de la máquina virtual",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/12-implementacion-maquina-virtual.pdf",
+          "descripcion": "Es la evidencia de cómo se montó la máquina virtual que aloja la base de datos, con una instalación mínima y sin interfaz gráfica para gastar pocos recursos.",
+          "puntosTitulo": "Configuración adoptada",
+          "puntos": [
+            "Sistema operativo: Oracle Linux Server 9.8, instalado desde la imagen OracleLinux-R9-U8-x86_64-dvd.iso.",
+            "Hipervisor: Oracle VirtualBox 7.2, sobre un equipo Windows.",
+            "Recursos: 2 CPU, 2048 MB de RAM y 25 GB de disco dinámico.",
+            "Red NAT con reenvío de puertos: SSH por el 2222 hacia el 22, y MySQL por el 3307 hacia el 3306.",
+            "Firewall: firewalld con el puerto 3306/tcp abierto. SELinux no requirió cambios, porque ese puerto ya está autorizado para MySQL."
+          ]
+        },
+        {
+          "titulo": "Implementación del RDBMS",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/13-implementacion-rdbms.pdf",
+          "descripcion": "Es la evidencia de la instalación y puesta en marcha de MySQL 8 en la máquina virtual, y de la carga de la base vesperaroom con los scripts del proyecto: creación de objetos, inserción de datos de prueba y consultas varias.",
+          "puntosTitulo": "Qué quedó funcionando",
+          "puntos": [
+            "MySQL 8.0.46 instalado desde los repositorios oficiales de Oracle Linux (dnf install mysql-server), sin repositorios adicionales.",
+            "La integridad definida con PK, FK, UNIQUE y CHECK en el script 01_creacion_objetos.sql.",
+            "Los scripts 01 a 04 y las migraciones, con su README, que corren sin errores en la máquina virtual y cargan los datos de prueba."
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Backend",
+      "cronologia": "Aplicativo web conectado a la base de datos el 30 de octubre de 2026",
+      "intro": "La aplicación que consulta y modifica la base de datos: Spring Boot en el servidor y Angular en el navegador.",
+      "documentos": [
+        {
+          "titulo": "Diagrama UML del backend",
+          "tipo": "html",
+          "archivo": "/pdf/vesperaroom/15-uml-backend.html",
+          "descripcion": "Es el diagrama UML que documenta cómo está organizado el backend de VesperaRoom. El backend está hecho en Java 21 con Spring Boot y accede a la base de datos con JDBC y SQL escrito a mano, sin ORM, a través de repositorios JDBC propios.",
+          "puntosTitulo": "Qué resuelve el backend",
+          "puntos": [
+            "Autenticación con JWT y permisos por rol: cada rol accede solo a sus operaciones.",
+            "Reservas y pagos con estados automáticos y validación de cruces de horario.",
+            "Cancelación con reembolso, calculado en el backend según la política del motel.",
+            "54 pruebas automáticas."
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Código fuente",
+      "cronologia": "",
+      "intro": "Todo el código del aplicativo y los scripts de la base de datos.",
+      "documentos": [
+        {
+          "titulo": "Código fuente completo",
+          "tipo": "zip",
+          "archivo": "/code/vesperaroom-codigo-fuente.zip",
+          "boton": "Descargar el código (.zip)",
+          "descripcion": "Un solo archivo con el frontend en Angular, que tiene 26 pruebas automáticas, el backend en Spring Boot, con otras 54, y los scripts SQL de la base de datos."
+        },
+        {
+          "titulo": "Repositorio en GitHub",
+          "tipo": "enlace",
+          "url": "https://github.com/Fetchnt/vesperaroom",
+          "boton": "Ver el repositorio en GitHub",
+          "descripcion": "Donde el equipo gestionó el código y la documentación con Git, con ramas y commits por integrante, como pedía la propuesta."
+        }
+      ]
+    },
+    {
+      "nombre": "Cierre",
+      "cronologia": "Video de presentación el 1 de noviembre y entrega final el 2 de noviembre de 2026",
+      "intro": "El cierre formal del proyecto y lo que nos dejó.",
+      "documentos": [
+        {
+          "titulo": "Acta de cierre",
+          "tipo": "pdf",
+          "archivo": "/pdf/vesperaroom/16-acta-cierre.pdf",
+          "descripcion": "Documenta el cierre formal del proyecto el 2 de noviembre de 2026 y lo contrasta con lo que se había prometido en el acta de constitución: se cumplieron los cuatro objetivos (modelar el dominio, normalizar hasta 3FN, implementar el RDBMS en una máquina virtual Linux y desarrollar el aplicativo con control de acceso por rol), se cumplieron los requerimientos del producto y se entregaron todos los entregables de la Fase 1, la Fase 2, la gestión y el cierre. Recoge el cronograma, confirma que el presupuesto se ejecutó sin desviaciones y termina con las lecciones aprendidas y las aprobaciones del cliente y del equipo.",
+          "puntosTitulo": "Lecciones aprendidas",
+          "puntos": [
+            "El nombre de la base de datos se cambió en la etapa final. Lección: definir los nombres de los objetos al inicio y mantener alineados scripts, configuración y documentos.",
+            "Una base sin la migración de reembolsos hizo fallar las consultas de reservas. Lección: versionar cada cambio de esquema en un script y aplicarlo en todos los entornos antes de probar.",
+            "La propuesta, los supuestos y el modelo Barker quedaron desactualizados frente al modelo final. Lección: revisar los documentos de diseño cada vez que cambia el modelo, no solo al final.",
+            "La regla «sin política no hay reservas» se aplicaba distinto en el front y en el back. Lección: escribir cada regla de negocio una sola vez en los supuestos y validarla en el backend con pruebas.",
+            "Usar JDBC sin ORM obligó a escribir todo el SQL a mano, pero dio control total de las consultas y facilitó expresarlas en álgebra relacional.",
+            "La Fase 2 duraba solo tres días, un riesgo identificado en el acta. Adelantar el aplicativo y los scripts antes del 30 de octubre permitió cumplir con la entrega."
+          ]
+        }
+      ]
+    }
+  ]
+}

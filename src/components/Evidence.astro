@@ -1,6 +1,7 @@
 ---
 import { categorias as cargarCategorias } from '../lib/evidencias';
 import { cargarSql } from '../lib/sqlParser';
+import proyecto from '../data/proyecto.json';
 
 const root = import.meta.env.BASE_URL.replace(/\/$/, '');
 const categorias = cargarCategorias();
@@ -8,12 +9,17 @@ const categorias = cargarCategorias();
 const sql = cargarSql();
 const totalSql = sql.clase.total + sql.proyecto.total;
 
-// SQL cuenta consultas (vienen de los textos); el resto cuenta evidencias del JSON.
+const totalDocs = proyecto.etapas.reduce((n, e) => n + e.documentos.length, 0);
+
+// SQL cuenta consultas, Proyecto cuenta documentos y el resto cuenta evidencias.
 function contar(c: { slug: string; items: unknown[] }) {
-  const n = c.slug === 'sql' ? totalSql : c.items.length;
+  const cuenta: Record<string, [number, string, string]> = {
+    sql: [totalSql, 'consulta', 'consultas'],
+    proyecto: [totalDocs, 'documento', 'documentos'],
+  };
+  const [n, uno, varios] = cuenta[c.slug] ?? [c.items.length, 'evidencia', 'evidencias'];
   if (n === 0) return 'Próximamente';
-  const unidad = c.slug === 'sql' ? ['consulta', 'consultas'] : ['evidencia', 'evidencias'];
-  return `${n} ${n === 1 ? unidad[0] : unidad[1]}`;
+  return `${n} ${n === 1 ? uno : varios}`;
 }
 ---
 

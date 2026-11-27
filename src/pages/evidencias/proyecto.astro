@@ -1,0 +1,498 @@
+---
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import Layout from '../../layouts/Layout.astro';
+import datos from '../../data/proyecto.json';
+import { withBase } from '../../lib/assetPath';
+
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// Los botones de un archivo solo aparecen si ya está subido a public/.
+const existe = (ruta?: string) =>
+  Boolean(ruta) && existsSync(join(process.cwd(), 'public', String(ruta).replace(/^\//, '')));
+
+const etapas = (datos.etapas as any[]).map((e) => ({
+  ...e,
+  documentos: (e.documentos as any[]).map((d) => ({ ...d, hay: existe(d.archivo) })),
+}));
+
+function plural(n: number, uno: string, varios: string) {
+  return `${n} ${n === 1 ? uno : varios}`;
+}
+---
+
+<Layout
+  title="Proyecto VesperaRoom | Evidencias"
+  description="Proyecto final de Bases de Datos 1: VesperaRoom, un sistema de gestión y reservas de moteles."
+>
+  <main id="main-content" class="ev-page">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-24">
+      <a href={`${root}/#evidencias`} class="back-link">← Volver a Evidencias</a>
+
+      <h1 class="text-3xl sm:text-4xl font-bold mt-8 mb-3 gradient-text">Proyecto: VesperaRoom</h1>
+      {(datos.intro as string[]).map((p) => <p class="lead">{p}</p>)}
+
+      <dl class="stats">
+        {
+          (datos.datos as any[]).map((d) => (
+            <div>
+              <dt>{d.etiqueta}</dt>
+              <dd>{d.valor}</dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="dos">
+        <div>
+          <h2 class="sub">Equipo</h2>
+          <ul class="equipo">
+            {
+              (datos.equipo as any[]).map((m) => (
+                <li>
+                  <strong>{m.nombre}</strong>
+                  <span>{m.rol}</span>
+                  {m.yo && <em>Mi rol en el proyecto</em>}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <div>
+          <h2 class="sub">Con qué está hecho</h2>
+          <ul class="tec">
+            {(datos.tecnologias as string[]).map((t) => <li>{t}</li>)}
+          </ul>
+        </div>
+      </div>
+
+      <p class="nota">
+        Las consultas que escribí sobre la base de datos de este proyecto están en la
+        <a href={`${root}/evidencias/sql#proyecto`}>sección SQL</a>.
+      </p>
+
+      <h2 class="sub sub-ruta">Recorrido por etapas</h2>
+      <ol class="ruta">
+        {
+          etapas.map((e, i) => (
+            <li class="paso">
+              <details open={i === 0}>
+                <summary>
+                  <span class="num">{i + 1}</span>
+                  <span class="paso-info">
+                    <span class="paso-nombre">{e.nombre}</span>
+                    {e.cronologia && <span class="paso-fecha">{e.cronologia}</span>}
+                  </span>
+                  <span class="paso-count">{plural(e.documentos.length, 'documento', 'documentos')}</span>
+                </summary>
+
+                <div class="paso-cuerpo">
+                  {e.intro && <p class="resumen">{e.intro}</p>}
+
+                  {e.destacado && (
+                    <div class="destacado">
+                      <strong>{e.destacado.titulo}</strong>
+                      <p>{e.destacado.texto}</p>
+                    </div>
+                  )}
+
+                  {e.documentos.map((d: any) => (
+                    <article class="doc">
+                      <h3>{d.titulo}</h3>
+                      <p class="doc-desc">{d.descripcion}</p>
+
+                      {d.puntos && d.puntos.length > 0 && (
+                        <>
+                          <p class="puntos-titulo">{d.puntosTitulo ?? 'Lo más importante'}</p>
+                          <ul class="puntos">
+                            {d.puntos.map((p: string) => (
+                              <li>{p}</li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+
+                      {d.tipo === 'enlace' && (
+                        <div class="acciones">
+                          <a class="boton" href={d.url} target="_blank" rel="noopener noreferrer">
+                            {d.boton ?? 'Abrir enlace'}
+                          </a>
+                        </div>
+                      )}
+
+                      {d.hay && d.tipo === 'zip' && (
+                        <div class="acciones">
+                          <a class="boton" href={withBase(d.archivo)} download>
+                            {d.boton ?? 'Descargar'}
+                          </a>
+                        </div>
+                      )}
+
+                      {d.hay && (d.tipo === 'pdf' || d.tipo === 'html') && (
+                        <div class="acciones">
+                          <a
+                            class="boton"
+                            href={withBase(d.archivo)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {d.boton ?? (d.tipo === 'pdf' ? 'Ver el PDF' : 'Abrir el diagrama')}
+                          </a>
+                          {d.tipo === 'pdf' && (
+                            <a class="boton secundario" href={withBase(d.archivo)} download>
+                              Descargar
+                            </a>
+                          )}
+                          <details class="visor">
+                            <summary>Verlo aquí mismo</summary>
+                            <iframe
+                              src={withBase(d.archivo)}
+                              title={`Vista de ${d.titulo}`}
+                              loading="lazy"
+                            />
+                          </details>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </details>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .ev-page {
+    background-color: var(--bg);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+  .lead {
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 44rem;
+    margin-bottom: 1rem;
+  }
+
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2.5rem;
+    margin: 2rem 0 2.5rem;
+  }
+  .stats div {
+    max-width: 11rem;
+  }
+  .stats dt {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .stats dd {
+    color: var(--text);
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .dos {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  .sub {
+    color: var(--text);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .sub-ruta {
+    margin-top: 3rem;
+  }
+  .equipo {
+    list-style: none;
+    padding: 0;
+  }
+  .equipo li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .equipo li:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+  .equipo strong {
+    color: var(--text);
+  }
+  .equipo span {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .equipo em {
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-style: normal;
+    font-weight: 600;
+  }
+  .tec {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  .tec li {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    margin-bottom: 0.35rem;
+  }
+  .nota {
+    color: var(--text-muted);
+    margin-top: 2rem;
+    font-size: 0.92rem;
+  }
+  .nota a {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .nota a:hover {
+    text-decoration: underline;
+  }
+
+  .ruta {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+  }
+  .paso {
+    position: relative;
+    padding-left: 3.25rem;
+    padding-bottom: 0.75rem;
+  }
+  .paso::before {
+    content: '';
+    position: absolute;
+    left: 1.1rem;
+    top: 2.6rem;
+    bottom: -0.1rem;
+    width: 2px;
+    background: var(--border);
+  }
+  .paso:last-child::before {
+    display: none;
+  }
+  .num {
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .paso > details > summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .paso > details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .paso > details > summary::after {
+    content: '+';
+    color: var(--text-dim);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .paso > details[open] > summary::after {
+    content: '−';
+  }
+  .paso > details > summary:hover {
+    border-color: var(--accent);
+  }
+  .paso > details > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .paso-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .paso-nombre {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .paso-fecha {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .paso-count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .paso-cuerpo {
+    padding: 0.5rem 0.25rem;
+  }
+  .resumen {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin: 0.75rem 0 1rem;
+  }
+  .destacado {
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    border-left: 3px solid var(--accent);
+    background: var(--bg-card);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  .destacado strong {
+    color: var(--text);
+  }
+  .destacado p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    margin-top: 0.35rem;
+  }
+
+  .doc {
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .doc:first-of-type {
+    border-top: none;
+  }
+  .doc h3 {
+    color: var(--text);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .doc-desc {
+    color: var(--text-muted);
+    line-height: 1.75;
+    margin-top: 0.5rem;
+  }
+  .puntos-titulo {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 1rem 0 0.35rem;
+  }
+  .puntos {
+    list-style: disc;
+    padding-left: 1.5rem;
+  }
+  .puntos li {
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-size: 0.92rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+  }
+  .boton {
+    display: inline-block;
+    padding: 0.5rem 1.1rem;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: background 0.2s ease;
+  }
+  .boton:hover {
+    background: rgba(99, 102, 241, 0.12);
+  }
+  .boton:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .boton.secundario {
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .boton.secundario:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .visor {
+    flex-basis: 100%;
+    margin-top: 0.4rem;
+  }
+  .visor summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  .visor summary:hover {
+    color: var(--accent);
+  }
+  .visor iframe {
+    display: block;
+    width: 100%;
+    height: 640px;
+    margin-top: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .dos {
+      grid-template-columns: 1fr;
+    }
+    .paso {
+      padding-left: 2.75rem;
+    }
+    .paso > details > summary {
+      flex-wrap: wrap;
+      gap: 0.4rem 0.75rem;
+    }
+    .paso-count {
+      order: 3;
+    }
+    .visor iframe {
+      height: 480px;
+    }
+  }
+</style>

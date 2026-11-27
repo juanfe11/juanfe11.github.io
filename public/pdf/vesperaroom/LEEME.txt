@@ -1,0 +1,16 @@
+Aquí van los PDF del proyecto VesperaRoom. Los nombres deben ser exactamente estos:
+
+01-propuesta-proyecto.pdf
+02-acta-proyecto.pdf
+03-supuestos.pdf
+04-mer.pdf
+05-modelo-er-barker.pdf
+06-modelo-relacional.pdf
+08-diccionario-datos.pdf
+09-algebra-relacional.pdf
+10-seleccion-sistema-operativo.pdf
+11-seleccion-rdbms.pdf
+12-implementacion-maquina-virtual.pdf
+13-implementacion-rdbms.pdf
+15-uml-backend.html
+16-acta-cierre.pdf

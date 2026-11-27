@@ -6,9 +6,9 @@ import { categorias } from '../../lib/evidencias';
 import { withBase } from '../../lib/assetPath';
 
 export function getStaticPaths() {
-  // SQL tiene su propia página (sql.astro), con un diseño distinto.
+  // SQL y Proyecto tienen su propia página (sql.astro y proyecto.astro), con un diseño distinto.
   return categorias()
-    .filter((cat) => cat.slug !== 'sql')
+    .filter((cat) => !['sql', 'proyecto'].includes(cat.slug))
     .map((cat) => ({
     params: { categoria: cat.slug },
     props: { cat },
@@ -54,6 +54,9 @@ const root = import.meta.env.BASE_URL.replace(/\/$/, '');
                     rel="noopener noreferrer"
                   >
                     Ver el PDF del taller
+                  </a>
+                  <a class="boton secundario" href={withBase(item.pdf)} download>
+                    Descargar
                   </a>
                   <details class="visor">
                     <summary>Verlo aquí mismo</summary>
@@ -224,6 +227,15 @@ const root = import.meta.env.BASE_URL.replace(/\/$/, '');
   .boton:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+  .boton.secundario {
+    margin-left: 0.5rem;
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .boton.secundario:hover {
+    color: var(--accent);
+    border-color: var(--accent);
   }
   .visor {
     margin-top: 0.9rem;
