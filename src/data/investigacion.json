@@ -1,0 +1,106 @@
+{
+  "resumen": "Lo que leí en tres capítulos del libro de Harrington y cómo se compara con lo que vimos en clase.",
+  "intro": [
+    "Para ampliar lo que vimos en clase leí tres capítulos del libro Relational Database Design and Implementation, de Harrington: el 5, el 6 y el 7. No me puse a resumirlos completos. Me quedé con lo que me pareció más útil: las cosas que el libro cuenta y las diapositivas no traen, y sobre todo los puntos donde dicen algo distinto o hasta se contradicen.",
+    "Para cada tema cuento qué dice el libro, qué vimos en clase, en qué se diferencian y por qué me pareció importante. Cuando algo es una conclusión mía o un dato que no viene del libro, lo aclaro."
+  ],
+  "capitulos": [
+    { "n": 5, "tema": "Claves, tablas y relaciones, vistas y diccionario de datos" },
+    { "n": 6, "tema": "Álgebra relacional y joins" },
+    { "n": 7, "tema": "Formas normales" }
+  ],
+  "hallazgos": [
+    {
+      "titulo": "Qué hace buena a una clave primaria",
+      "capitulos": "Capítulo 5",
+      "bloques": [
+        { "titulo": "Lo que dice el libro", "texto": "Una buena clave nunca es nula, nunca cambia y no lleva significado. Lo explica con el número de seguro social, que no sirve para estudiantes extranjeros porque todavía no lo tienen. Otro caso es usar el correo como clave: si el usuario lo cambia, hay que modificar todos sus pedidos." },
+        { "titulo": "Lo que vimos en clase", "texto": "La diapositiva 9 compara las claves naturales, las subrogadas y las inteligentes, y pone la cédula y el ISBN como ejemplos válidos de claves naturales." },
+        { "titulo": "Diferencias que encontré", "destacado": true, "puntos": [
+          "El libro es más tajante: pide evitar los identificadores con significado «a toda costa».",
+          "Se contradice un poco a sí mismo: admite que no es una regla absoluta (por ejemplo, las fechas en las claves) y en un ejemplo usa nombre y apellido como clave."
+        ] },
+        { "titulo": "Por qué me sirvió", "texto": "Mi modelo de VesperaRoom sigue esa lógica: USUARIO tiene id_usuario como identificador, y el correo y el teléfono quedan como únicos (U), no como clave." }
+      ]
+    },
+    {
+      "titulo": "Tabla no es lo mismo que relación, y SQL no elimina duplicados por defecto",
+      "capitulos": "Capítulos 5 y 6",
+      "bloques": [
+        { "titulo": "Lo que dice el libro", "texto": "Existen tablas base y tablas virtuales, y las virtuales pueden no ser relaciones legítimas: el resultado de un outer join, por ejemplo, puede tener nulos donde iría la clave. También aclara que los motores normalmente no imponen que las filas sean únicas, eso lo logra la clave primaria. Y en el álgebra, el motor tampoco elimina los duplicados al proyectar a menos que se le pida, porque eso exige ordenar toda la tabla." },
+        { "titulo": "Diferencias que encontré", "destacado": true, "puntos": [
+          "La diapositiva 13 dice que «no hay tuplas repetidas» es una restricción inherente al modelo, que no hay que declarar. El libro dice que en la práctica esa garantía hay que construirla con la clave."
+        ] },
+        { "titulo": "Por qué me sirvió", "texto": "Me explicó por qué el resumen de álgebra traduce la proyección a SELECT DISTINCT y no a un SELECT a secas." }
+      ]
+    },
+    {
+      "titulo": "Vistas y diccionario de datos",
+      "capitulos": "Capítulo 5",
+      "bloques": [
+        { "titulo": "Lo que dice el libro", "texto": "Una vista guarda una consulta, no datos, y sirve para seguridad, simplicidad y consultas que se repiten. Guardar su contenido como una tabla base es «indeseable», porque queda desactualizada. El diccionario de datos es el conjunto de tablas donde el motor guarda la estructura de la base, y el motor lo consulta antes de cada acceso. El libro lo llama data dictionary driven." },
+        { "titulo": "Lo que vimos en clase", "texto": "Las vistas aparecen solo de pasada en la diapositiva 15, y el diccionario de datos no aparece." },
+        { "titulo": "Por qué me sirvió", "texto": "Lo conecté con Oracle, donde el diccionario se consulta con vistas como USER_TABLES o USER_CONSTRAINTS. Ese dato es conocimiento general de Oracle, no del libro. Podría usarlo como evidencia consultando mis propias restricciones." }
+      ]
+    },
+    {
+      "titulo": "Álgebra relacional: teoría, práctica y terminología",
+      "capitulos": "Capítulo 6",
+      "bloques": [
+        { "titulo": "Lo que dice el libro", "texto": "El álgebra es procedimental (paso a paso) y SQL no. El optimizador elige el orden de las operaciones, y eso tiene un costo: si tarda demasiado en decidir, pierde la ventaja de la mejor estrategia. Un join equivale a un producto cartesiano más una restricción, y si se olvida el predicado del join queda un producto con datos falsos." },
+        { "titulo": "En qué coincide con mi trabajo", "puntos": [
+          "El ejercicio 16 de VesperaRoom muestra que hay que filtrar antes de proyectar, igual que el ejemplo del código postal del libro.",
+          "El ejercicio 29 muestra la equivalencia entre producto más filtro y join con condición."
+        ] },
+        { "titulo": "Diferencias que encontré", "destacado": true, "puntos": [
+          "Nombre de la operación: el libro usa restrict (el término de Date) para no confundirla con SELECT. Nuestro resumen usa selección σ.",
+          "Notación y operaciones: el libro evita la notación matemática y no incluye renombrar, proyección extendida, agrupación ni asignación. El resumen sí las usa.",
+          "Qué es fundamental: el libro cuenta el join entre las cinco operaciones fundamentales y deja el producto como ayuda didáctica. El ejercicio 64 construye la división solo con π, × y −, que según mi conocimiento general es la base mínima clásica."
+        ] }
+      ]
+    },
+    {
+      "titulo": "Joins que «mienten» y outer joins",
+      "capitulos": "Capítulo 6",
+      "bloques": [
+        { "titulo": "Lo que dice el libro", "texto": "Unir tablas por una columna que no es una pareja clave primaria–foránea produce filas que contradicen la base. Su ejemplo une volume con book_sources por el ISBN y deja a un mismo volumen con dos fuentes distintas." },
+        { "titulo": "Cómo se compara con mi trabajo", "texto": "Lo comparé con el ejercicio 31, que es otro tipo de trampa. Ahí el join natural compara por accidente la columna nombre de MOTEL y de CIUDAD y devuelve cero filas. Son dos formas distintas de que un join falle: una por semántica y otra por nombres repetidos." },
+        { "titulo": "Lo que comprobé", "texto": "Con la Tabla 6.9, el libro dice que un left o right outer join solo se distingue del inner join si la tabla con la clave primaria queda del lado que nombra la operación. Lo verifiqué en los ejercicios 44 y 47 y se cumple." },
+        { "titulo": "Diferencias y tensiones", "destacado": true, "puntos": [
+          "Tensión con el capítulo 5: el libro dice que repetir nombres de columna entre tablas es «altamente deseable» en algunos casos, y el ejercicio 31 muestra el riesgo cuando la columna repetida no es una llave.",
+          "Contradicción interna: el libro afirma que la operación de diferencia es «la única forma» de resolver consultas en negativo. El ejercicio 49 las resuelve con outer join más IS NULL, y el propio capítulo dice que el outer join muestra dónde no hay coincidencias."
+        ] }
+      ]
+    },
+    {
+      "titulo": "Normalización: dónde el libro y las diapositivas no coinciden",
+      "capitulos": "Capítulo 7",
+      "bloques": [
+        { "titulo": "Diferencias que encontré", "destacado": true, "puntos": [
+          "1FN: el libro dice que la solución de columnas repetidas (hijo1, hijo2, hijo3) técnicamente cumple 1FN, aunque es mal diseño. La diapositiva 6 dice que esas columnas son justo lo que la 1FN prohíbe. Los dos coinciden en que está mal.",
+          "2FN: el libro la define con «atributos no clave» y «la clave primaria». La diapositiva 9 advierte que esa versión abreviada es incompleta, porque falta «no primo» y falta «toda clave candidata».",
+          "FNBC, definición: el libro dice «todo determinante es clave candidata» y las diapositivas dicen «superclave». La definición formal habitual usa superclave.",
+          "FNBC, ejemplos: el ejemplo del libro (empleado, fecha, turno, estación) tiene claves solapadas y aun así cumple FNBC. El de las diapositivas (pedido, ciudad, asesor) tiene claves solapadas y la viola. Juntos muestran que el solapamiento es necesario para fallar, pero no suficiente.",
+          "FNBC, costo: el libro no menciona que llegar a FNBC puede perder dependencias. La diapositiva 16 sí lo hace.",
+          "4FN: el libro dice que estas situaciones surgen «ocasionalmente». La diapositiva 17 cita un estudio de Wu (1992) donde más del 20 % de 40 bases reales violaba la 4FN.",
+          "5FN (análisis mío): el ejemplo del libro (cliente, serie, ítem) se arregla con dos tablas, y de hecho el libro lo descompone en dos. Según la diapositiva 19, si bastan dos proyecciones el caso es 4FN. Eso sugiere que ese ejemplo ilustra 4FN y no 5FN. Es mi razonamiento, no algo que diga el libro."
+        ] },
+        { "titulo": "Los registros de «todo clave»", "texto": "El capítulo 5 dice que no son un error, y el capítulo 7 muestra uno con anomalías (película, actor, productor). La diferencia es que el primero resuelve una sola relación M:N y el segundo mezcla dos independientes. Esto conecta con las reglas de transformación vistas en clase, donde cada M:N genera su propia tabla." },
+        { "titulo": "Lo que aporta el libro y las diapositivas no traen", "puntos": [
+          "Anomalía de inserción y borrado: el libro las explica como consecuencia de la integridad de entidad del capítulo 5. Si la clave es compuesta y no se tiene una parte, no se puede insertar. Si se borra una parte, hay que borrar toda la fila.",
+          "Anomalía de 5FN: describe una anomalía propia de la 5FN, la de verse obligado a insertar filas que no se quieren.",
+          "6FN: el libro la ve como solución para datos temporales. Advierte que exige joins costosos y una restricción de inclusión circular que SQL no soporta. Las diapositivas la asocian con bodegas de datos."
+        ] }
+      ]
+    }
+  ],
+  "conexiones": {
+    "titulo": "Cómo lo conecté con mis talleres",
+    "puntos": [
+      "En el taller de Terminal Portuaria, las entidades débiles con clave de dueño más parte propia (por ejemplo CORREO con (documento, correo)) siguen la regla del libro de concatenar la clave del padre.",
+      "En ABASTECIMIENTO dejé la clave de cuatro columnas y anoté que nit podría salir de ella. Eso aplica el criterio de usar «el menor número de columnas necesario».",
+      "En la librería y el zoológico, tablas como CESTA_DE o RECORRE son de «todo clave», y el capítulo 5 confirma que eso es válido.",
+      "En el taller de normalización, la conclusión sobre 5FN con Date y Fagin es la versión formal de lo que el libro dice informalmente: si está en 3FN y no tiene características especiales, está en 5FN."
+    ]
+  }
+}

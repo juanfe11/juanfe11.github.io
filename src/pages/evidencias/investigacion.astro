@@ -1,0 +1,255 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import datos from '../../data/investigacion.json';
+
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
+const hallazgos = datos.hallazgos as any[];
+---
+
+<Layout
+  title="Investigación | Evidencias"
+  description="Lectura de los capítulos 5, 6 y 7 del libro Relational Database Design and Implementation, comparada con lo visto en clase de Bases de Datos 1."
+>
+  <main id="main-content" class="ev-page">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-24">
+      <a href={`${root}/#evidencias`} class="back-link">← Volver a Evidencias</a>
+
+      <h1 class="text-3xl sm:text-4xl font-bold mt-8 mb-3 gradient-text">Investigación</h1>
+      {(datos.intro as string[]).map((p) => <p class="lead">{p}</p>)}
+
+      <div class="libro">
+        <p class="libro-titulo">Relational Database Design and Implementation</p>
+        <p class="libro-autor">Harrington</p>
+        <ul>
+          {
+            (datos.capitulos as any[]).map((c) => (
+              <li>
+                <strong>Capítulo {c.n}</strong>
+                <span>{c.tema}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <h2 class="sub">Lo que encontré</h2>
+      <ol class="indice">
+        {
+          hallazgos.map((h, i) => (
+            <li>
+              <a href={`#h${i + 1}`}>
+                <span class="indice-n">{i + 1}</span>
+                <span class="indice-t">{h.titulo}</span>
+                <span class="indice-c">{h.capitulos}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+
+      {
+        hallazgos.map((h, i) => (
+          <article class="hallazgo" id={`h${i + 1}`}>
+            <p class="hallazgo-cap">{h.capitulos}</p>
+            <h2>
+              {i + 1}. {h.titulo}
+            </h2>
+            {h.bloques.map((b: any) => (
+              <div class={`bloque${b.destacado ? ' destacado' : ''}`}>
+                <h3>{b.titulo}</h3>
+                {b.texto && <p>{b.texto}</p>}
+                {b.puntos && (
+                  <ul>
+                    {b.puntos.map((p: string) => (
+                      <li>{p}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </article>
+        ))
+      }
+
+      <article class="hallazgo conexiones">
+        <h2>{datos.conexiones.titulo}</h2>
+        <ul class="lista">
+          {datos.conexiones.puntos.map((p: string) => <li>{p}</li>)}
+        </ul>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .ev-page {
+    background-color: var(--bg);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+  .lead {
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 44rem;
+    margin-bottom: 1rem;
+  }
+
+  .libro {
+    margin: 2rem 0 2.5rem;
+    padding: 1.1rem 1.4rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+  }
+  .libro-titulo {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .libro-autor {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+  }
+  .libro ul {
+    list-style: none;
+    padding: 0;
+  }
+  .libro li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    padding: 0.4rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .libro li strong {
+    color: var(--accent);
+    font-size: 0.9rem;
+    min-width: 6.5rem;
+  }
+  .libro li span {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+  }
+
+  .sub {
+    color: var(--text);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.9rem;
+  }
+  .indice {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 3rem;
+  }
+  .indice a {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.9rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--border);
+    text-decoration: none;
+  }
+  .indice li:last-child a {
+    border-bottom: 1px solid var(--border);
+  }
+  .indice-n {
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 1.25rem;
+  }
+  .indice-t {
+    flex: 1;
+    color: var(--text);
+    min-width: 12rem;
+  }
+  .indice-c {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+  .indice a:hover .indice-t,
+  .indice a:focus-visible .indice-t {
+    color: var(--accent);
+  }
+
+  .hallazgo {
+    padding: 1.75rem;
+    margin-bottom: 1.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    scroll-margin-top: 5rem;
+  }
+  .hallazgo-cap {
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+  .hallazgo h2 {
+    color: var(--text);
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .bloque {
+    margin-top: 1.4rem;
+  }
+  .bloque h3 {
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .bloque p,
+  .bloque li {
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  .bloque ul {
+    list-style: disc;
+    padding-left: 1.4rem;
+  }
+  .bloque li {
+    margin-bottom: 0.55rem;
+  }
+  .destacado {
+    padding: 1rem 1.25rem 0.5rem;
+    border-left: 3px solid var(--accent);
+    background: var(--bg);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+
+  .conexiones .lista {
+    list-style: disc;
+    padding-left: 1.4rem;
+    margin-top: 1rem;
+  }
+  .conexiones .lista li {
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin-bottom: 0.7rem;
+  }
+
+  @media (max-width: 640px) {
+    .hallazgo {
+      padding: 1.25rem;
+    }
+    .indice-c {
+      white-space: normal;
+    }
+  }
+</style>

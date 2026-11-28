@@ -8,7 +8,7 @@ import { withBase } from '../../lib/assetPath';
 export function getStaticPaths() {
   // SQL, Proyecto y Modelado tienen su propia página, con un diseño distinto.
   return categorias()
-    .filter((cat) => !['sql', 'proyecto', 'modelado'].includes(cat.slug))
+    .filter((cat) => !['sql', 'proyecto', 'modelado', 'investigacion'].includes(cat.slug))
     .map((cat) => ({
     params: { categoria: cat.slug },
     props: { cat },

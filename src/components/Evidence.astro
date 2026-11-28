@@ -3,12 +3,19 @@ import { categorias as cargarCategorias } from '../lib/evidencias';
 import { cargarSql } from '../lib/sqlParser';
 import proyecto from '../data/proyecto.json';
 import modelado from '../data/modelado.json';
+import investigacion from '../data/investigacion.json';
 
 const root = import.meta.env.BASE_URL.replace(/\/$/, '');
 const categorias = cargarCategorias();
 
 const sql = cargarSql();
 const totalSql = sql.clase.total + sql.proyecto.total;
+
+// Las categorías con página propia traen el texto de su tarjeta en su propio JSON.
+const resumenes: Record<string, string> = {
+  modelado: modelado.resumen,
+  investigacion: investigacion.resumen,
+};
 
 const totalDocs = proyecto.etapas.reduce((n, e) => n + e.documentos.length, 0);
 
@@ -19,6 +26,7 @@ function contar(c: { slug: string; items: unknown[] }) {
     sql: [totalSql, 'consulta', 'consultas'],
     proyecto: [totalDocs, 'documento', 'documentos'],
     modelado: [modelado.ejercicios.length, 'ejercicio', 'ejercicios'],
+    investigacion: [investigacion.hallazgos.length, 'tema', 'temas'],
   };
   const [n, uno, varios] = cuenta[c.slug] ?? [c.items.length, 'evidencia', 'evidencias'];
   if (n === 0) return 'Próximamente';
@@ -38,7 +46,7 @@ function contar(c: { slug: string; items: unknown[] }) {
         categorias.map((c) => (
           <a href={`${root}/evidencias/${c.slug}`} class="evidence-card">
             <h3>{c.titulo}</h3>
-            <p>{c.slug === 'modelado' ? modelado.resumen : c.resumen}</p>
+            <p>{resumenes[c.slug] ?? c.resumen}</p>
             <span class="count">{contar(c)}</span>
           </a>
         ))
